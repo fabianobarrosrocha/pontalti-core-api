@@ -58,6 +58,7 @@ model Customers {
   messageConfig  CustomerMessageConfig[]
   packagings     CustomerPackaging[]
   salesForecasts SalesForecasts[]
+  expenseActors  ExpenseActor[]
 }
 
 model Employees {
@@ -77,6 +78,7 @@ model Employees {
   schedules Schedules[]
   workHours WorkHours[]
   vacations Vacations[]
+  expenseActors ExpenseActor[]
 }
 
 model Vendors {
@@ -98,6 +100,7 @@ model Vendors {
   address Adresses @relation(fields: [address_id], references: [id])
 
   materialOrders MaterialOrders[]
+  expenseActors  ExpenseActor[]
 }
 
 model Products {
@@ -120,6 +123,9 @@ model Products {
   prices         Prices[]
   stock          Stock[]
   salesForecasts SalesForecasts[]
+  expenseProducts ExpenseProducts[]
+  // Relacionamentos para receitas
+  productRecipes ProductRecipe[] @relation("ProductRecipes")
 }
 
 model Machines {
@@ -131,6 +137,7 @@ model Machines {
   location_status Int
   created_at      DateTime @default(now())
   updated_at      DateTime
+  expenseMachines ExpenseMachines[]
 }
 
 model Procedures {
@@ -140,6 +147,7 @@ model Procedures {
   workers      Int
   created_at   DateTime @default(now())
   updated_at   DateTime
+  expenseProcedures ExpenseProcedures[]
 }
 
 model Schedules {
@@ -207,6 +215,8 @@ model Orders {
   deliveries        Delivery[]
   productionControl ProductionControl[]
   labelPrints       LabelPrints[]
+  expenseActors     ExpenseActor[]
+  expenseOrders     ExpenseOrders[]
 }
 
 model OrderItems {
@@ -250,6 +260,10 @@ model MaterialOrders {
 
   product Products @relation(fields: [product_id], references: [id])
   vendor  Vendors  @relation(fields: [vendor_id], references: [id])
+  // Relacionamento para consumo
+  materialConsumptions MaterialConsumption[]
+  // Relacionamento para receitas (MaterialOrders como matéria-prima)
+  productRecipes ProductRecipe[]
 }
 
 //TODO: Review delivery logic
@@ -297,6 +311,96 @@ model Prices {
   customer Customers? @relation(fields: [customer_id], references: [id])
 
   @@unique([product_id, customer_id])
+}
+
+model Expenses {
+  id                      Int      @id @default(autoincrement())
+  amount                  Decimal  @db.Decimal(12, 2)
+  classification          String?  @db.VarChar(50)
+  description             String?  @db.VarChar(150)
+  justification           String
+  requires_reimbursement  Boolean
+  applies_all_products    Boolean
+  applies_all_machines    Boolean
+  expense_date            DateTime
+  expense_actor_id        Int
+  created_at              DateTime @default(now())
+  created_by              String?
+  updated_at              DateTime @updatedAt
+  updated_by              String?
+
+  actor   ExpenseActor @relation(fields: [expense_actor_id], references: [id])
+  machines ExpenseMachines[]
+  products ExpenseProducts[]
+  procedures ExpenseProcedures[]
+  orders ExpenseOrders[]
+
+  @@index([expense_actor_id])
+}
+
+model ExpenseActor {
+  id                Int      @id @default(autoincrement())
+  first_name        String?  @db.VarChar(100)
+  last_name         String?  @db.VarChar(100)
+  whatsapp_telegram String?  @db.VarChar(20)
+  store_name        String?  @db.VarChar(150)
+  vendor_id         Int?
+  employee_id       Int?
+  customer_id       Int?
+  order_id          Int?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  vendor   Vendors?   @relation(fields: [vendor_id], references: [id])
+  employee Employees? @relation(fields: [employee_id], references: [id])
+  customer Customers? @relation(fields: [customer_id], references: [id])
+  order    Orders?    @relation(fields: [order_id], references: [id])
+  expenses Expenses[]
+
+  @@index([vendor_id])
+  @@index([employee_id])
+  @@index([customer_id])
+  @@index([order_id])
+}
+
+model ExpenseMachines {
+  expense_id Int
+  machine_id Int
+
+  expense Expenses @relation(fields: [expense_id], references: [id])
+  machine Machines @relation(fields: [machine_id], references: [id])
+
+  @@id([expense_id, machine_id])
+}
+
+model ExpenseProducts {
+  expense_id Int
+  product_id Int
+
+  expense Expenses @relation(fields: [expense_id], references: [id])
+  product Products @relation(fields: [product_id], references: [id])
+
+  @@id([expense_id, product_id])
+}
+
+model ExpenseProcedures {
+  expense_id   Int
+  procedure_id Int
+
+  expense   Expenses   @relation(fields: [expense_id], references: [id])
+  procedure Procedures @relation(fields: [procedure_id], references: [id])
+
+  @@id([expense_id, procedure_id])
+}
+
+model ExpenseOrders {
+  expense_id Int
+  order_id   Int
+
+  expense Expenses @relation(fields: [expense_id], references: [id])
+  order   Orders   @relation(fields: [order_id], references: [id])
+
+  @@id([expense_id, order_id])
 }
 
 enum MessageTriggerType {
@@ -462,15 +566,55 @@ model Stock {
   product Products @relation(fields: [product_id], references: [id])
 }
 
+// Receita de produtos (define quais materiais são necessários para produzir cada produto)
+model ProductRecipe {
+  id              Int   @id @default(autoincrement())
+  product_id      Int   // Produto final
+  material_order_id Int // MaterialOrder que serve como matéria-prima
+  quantity_needed Float // Quantidade necessária do material para produzir 1 unidade do produto
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  product        Products      @relation("ProductRecipes", fields: [product_id], references: [id])
+  material_order MaterialOrders @relation(fields: [material_order_id], references: [id])
+
+  @@unique([product_id, material_order_id])
+}
+
+// Consumo de materiais por produção (aproveitando MaterialOrders existente)
+model MaterialConsumption {
+  id                      Int       @id @default(autoincrement())
+  production_control_id   Int
+  material_order_id       Int       // Referencia MaterialOrders existente
+  planned_consumption     Float     // Consumo planejado
+  actual_consumption      Float?    // Consumo real (preenchido após produção)
+  variance                Float?    // Variação entre planejado e real
+  consumption_date        DateTime? // Data do consumo real
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  production_control ProductionControl @relation(fields: [production_control_id], references: [id])
+  material_order     MaterialOrders    @relation(fields: [material_order_id], references: [id])
+
+  @@unique([production_control_id, material_order_id])
+}
+
 model ProductionControl {
   id                     Int      @id @default(autoincrement())
   order_id               Int
-  status                 Int
-  material_disponibility Int
+  status                 Int      // Status da produção (1: Planejamento, 2: Em produção, 3: Concluído, etc)
+  material_disponibility Int     // Disponibilidade geral de materiais (1: Disponível, 2: Parcial, 3: Indisponível)
+  estimated_start_date   DateTime? // Data estimada de início
+  estimated_end_date     DateTime? // Data estimada de conclusão
+  actual_start_date      DateTime?  // Data real de início
+  actual_end_date        DateTime?  // Data real de conclusão
+  production_priority    Int       @default(3) // 1: Urgente, 2: Alta, 3: Normal, 4: Baixa
+  observations           String?   // Observações gerais
   created_at             DateTime @default(now())
   updated_at             DateTime @updatedAt
 
-  order Orders @relation(fields: [order_id], references: [id])
+  order              Orders               @relation(fields: [order_id], references: [id])
+  material_consumption MaterialConsumption[]
 }
 
 model SalesForecasts {
