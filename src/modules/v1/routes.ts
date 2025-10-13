@@ -25,6 +25,8 @@ import stocks from '@pontalti/modules/v1/stocks/routes'
 import productionControl from '@pontalti/modules/v1/production-control/routes'
 import salesForecasts from '@pontalti/modules/v1/sales-forecasts/routes'
 import labelPrints from '@pontalti/modules/v1/label-prints/routes'
+import expenses from '@pontalti/modules/v1/expenses/routes'
+import purchaseForecast from '@pontalti/modules/v1/purchase-forecast/routes'
 
 const routes = Router();
 
@@ -56,6 +58,8 @@ routes.use('/stocks', stocks);
 routes.use('/production-control', productionControl);
 routes.use('/sales-forecasts', salesForecasts);
 routes.use('/label-prints', labelPrints);
+routes.use('/expenses', expenses);
+routes.use('/purchase-forecast', purchaseForecast);
 routes.use("/calendar", calendar);
 
 export default routes;

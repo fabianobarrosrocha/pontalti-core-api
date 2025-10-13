@@ -18,6 +18,62 @@ async function main() {
     return array[Math.floor(Math.random() * array.length)];
   }
 
+  // Limpar dados existentes (opcional - remover se quiser manter dados)
+  console.log("🧹 Limpando dados existentes...");
+  
+  // Limpar relacionamentos primeiro (ordem inversa da criação, respeitando foreign keys)
+  
+  // 1. Tabelas de relacionamento N:N e dependentes de Orders
+  await dbClient.expenseOrders.deleteMany();
+  await dbClient.labelPrints.deleteMany();
+  await dbClient.materialConsumption.deleteMany();
+  await dbClient.productionControl.deleteMany();
+  await dbClient.delivery.deleteMany();
+  await dbClient.deliveryPackaging.deleteMany();
+  await dbClient.payments.deleteMany();
+  await dbClient.orderItems.deleteMany();
+  
+  // 2. Outras tabelas de relacionamento N:N
+  await dbClient.expenseProcedures.deleteMany();
+  await dbClient.expenseProducts.deleteMany();
+  await dbClient.expenseMachines.deleteMany();
+  await dbClient.productRecipe.deleteMany();
+  await dbClient.customerPackaging.deleteMany();
+  
+  // 3. Tabelas que dependem de outras entidades principais
+  await dbClient.expenses.deleteMany();
+  await dbClient.expenseActor.deleteMany();
+  await dbClient.materialOrders.deleteMany();
+  await dbClient.prices.deleteMany();
+  await dbClient.stock.deleteMany();
+  await dbClient.salesForecasts.deleteMany();
+  await dbClient.customerMessageSchedule.deleteMany();
+  await dbClient.customerMessageConfig.deleteMany();
+  await dbClient.vacations.deleteMany();
+  await dbClient.workHours.deleteMany();
+  await dbClient.schedules.deleteMany();
+  
+  // 4. Orders por último (depois de todas suas dependências)
+  await dbClient.orders.deleteMany();
+  
+  // 5. Tabelas independentes e de configuração
+  await dbClient.messageTemplate.deleteMany();
+  await dbClient.timeConfiguration.deleteMany();
+  await dbClient.packaging.deleteMany();
+  
+  // 6. Entidades principais (ordem inversa de dependência)
+  await dbClient.procedures.deleteMany();
+  await dbClient.machines.deleteMany();
+  await dbClient.products.deleteMany();
+  await dbClient.vendors.deleteMany();
+  await dbClient.employees.deleteMany();
+  await dbClient.customers.deleteMany();
+  await dbClient.adresses.deleteMany();
+  await dbClient.users.deleteMany();
+
+  console.log("✅ Dados limpos com sucesso!");
+  console.log("🌱 Iniciando criação de seeds...");
+
   // Criando usuários com diferentes níveis de acesso
   const userTypes = [
     { email: "admin@pontalti.com", name: "Admin Master", isAdmin: true },
@@ -26,6 +82,7 @@ async function main() {
     { email: "operador@pontalti.com", name: "Operador", isAdmin: false }
   ];
 
+  console.log("👥 Criando usuários...");
   for (const userType of userTypes) {
     await dbClient.users.create({
       data: {
@@ -36,6 +93,7 @@ async function main() {
   }
 
   // Criando endereços
+  console.log("🏠 Criando endereços...");
   const addressesData = [
     {
       zip_code: "01311-000",
@@ -75,6 +133,7 @@ async function main() {
   }
 
   // Criando clientes
+  console.log("🛒 Criando clientes...");
   const customerTypes = [
     { store_name: "Loja Premium", credit_limit: 50000, deliver: true, pontalti: true },
     { store_name: "Loja Standard", credit_limit: 20000, deliver: true, pontalti: false },
@@ -107,6 +166,7 @@ async function main() {
   }
 
   // Criando funcionários
+  console.log("👨‍💼 Criando funcionários...");
   const classifications = [1, 2, 3]; // 1: Operador, 2: Supervisor, 3: Gerente
   const salaryRanges = {
     1: { min: 2000, max: 3000 },
@@ -208,9 +268,10 @@ async function main() {
   }
 
   // Criando fornecedores
+  const createdVendors = [];
   for (let i = 1; i <= 6; i++) {
     const address = getRandomElement(createdAddresses);
-    await dbClient.vendors.create({
+    const vendor = await dbClient.vendors.create({
       data: {
         name: `Fornecedor ${i}`,
         address_id: address.id,
@@ -227,6 +288,7 @@ async function main() {
         updated_at: new Date()
       }
     });
+    createdVendors.push(vendor);
   }
 
   // Criando registros de ponto
@@ -536,6 +598,425 @@ async function main() {
       });
     }
   }
+
+  // Criando pedidos de materiais (MaterialOrders)
+  const createdMaterialOrders = [];
+  const materialTypes = [
+    { name: "Resina PET", unit: "kg" },
+    { name: "Tecido TNT", unit: "m" },
+    { name: "Adesivo Transparente", unit: "litros" },
+    { name: "Espuma D28", unit: "m²" },
+    { name: "Elástico", unit: "m" },
+    { name: "Linha Poliester", unit: "kg" }
+  ];
+
+  for (let i = 0; i < 15; i++) {
+    const vendor = getRandomElement(createdVendors);
+    const product = getRandomElement(products);
+    const materialType = getRandomElement(materialTypes);
+    
+    const materialOrder = await dbClient.materialOrders.create({
+      data: {
+        date: getRandomDate(new Date(2024, 0, 1), new Date()),
+        amount: Math.floor(getRandomNumber(10, 500)),
+        unit: materialType.unit,
+        storage_location: getRandomElement(["Galpão A", "Galpão B", "Depósito Central", "Setor C"]),
+        received_by: `Funcionário ${Math.floor(Math.random() * 8) + 1}`,
+        product_id: product.id,
+        vendor_id: vendor.id,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdMaterialOrders.push(materialOrder);
+  }
+
+  // Criando receitas de produtos (ProductRecipe)
+  const createdProductRecipes = [];
+  
+  // Cada produto final terá entre 2 e 4 materiais/componentes
+  for (const product of products) {
+    const numMaterials = Math.floor(Math.random() * 3) + 2; // 2 a 4 materiais
+    const usedMaterialOrders = new Set();
+    
+    for (let i = 0; i < numMaterials; i++) {
+      // Filtrar material orders que ainda não foram usados para este produto
+      const availableMaterialOrders = createdMaterialOrders.filter(mo => !usedMaterialOrders.has(mo.id));
+      if (availableMaterialOrders.length === 0) break;
+      
+      const materialOrder = getRandomElement(availableMaterialOrders);
+      usedMaterialOrders.add(materialOrder.id);
+      
+      const productRecipe = await dbClient.productRecipe.create({
+        data: {
+          product_id: product.id,
+          material_order_id: materialOrder.id,
+          quantity_needed: getRandomNumber(0.1, 5.0), // Quantidade necessária por unidade
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      });
+      createdProductRecipes.push(productRecipe);
+    }
+  }
+
+  // Criando controles de produção expandidos (ProductionControl)
+  const createdProductionControls = [];
+  const orders = await dbClient.orders.findMany();
+  
+  for (const order of orders) {
+    const productionControl = await dbClient.productionControl.create({
+      data: {
+        order_id: order.id,
+        status: Math.floor(Math.random() * 4) + 1, // 1: Planejamento, 2: Em produção, 3: Concluído, 4: Cancelado
+        material_disponibility: Math.floor(Math.random() * 3) + 1, // 1: Disponível, 2: Parcial, 3: Indisponível
+        estimated_start_date: getRandomDate(new Date(), new Date(2024, 11, 31)),
+        estimated_end_date: getRandomDate(new Date(2024, 6, 1), new Date(2024, 11, 31)),
+        actual_start_date: Math.random() > 0.5 ? getRandomDate(new Date(2024, 0, 1), new Date()) : null,
+        actual_end_date: Math.random() > 0.7 ? getRandomDate(new Date(2024, 0, 1), new Date()) : null,
+        production_priority: Math.floor(Math.random() * 4) + 1, // 1: Urgente, 2: Alta, 3: Normal, 4: Baixa
+        observations: Math.random() > 0.5 ? `Observação para pedido #${order.id}` : null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdProductionControls.push(productionControl);
+  }
+
+  // Criando consumo de materiais (MaterialConsumption)
+  for (const productionControl of createdProductionControls) {
+    // Cada controle de produção terá entre 2 e 5 consumos de materiais
+    const numConsumptions = Math.floor(Math.random() * 4) + 2;
+    const usedMaterialOrders = new Set();
+    
+    for (let i = 0; i < numConsumptions; i++) {
+      const availableMaterialOrders = createdMaterialOrders.filter(mo => !usedMaterialOrders.has(mo.id));
+      if (availableMaterialOrders.length === 0) break;
+      
+      const materialOrder = getRandomElement(availableMaterialOrders);
+      usedMaterialOrders.add(materialOrder.id);
+      
+      const plannedConsumption = getRandomNumber(1, 50);
+      const actualConsumption = Math.random() > 0.3 ? getRandomNumber(0.8 * plannedConsumption, 1.2 * plannedConsumption) : null;
+      const variance = actualConsumption ? actualConsumption - plannedConsumption : null;
+      
+      await dbClient.materialConsumption.create({
+        data: {
+          production_control_id: productionControl.id,
+          material_order_id: materialOrder.id,
+          planned_consumption: plannedConsumption,
+          actual_consumption: actualConsumption,
+          variance: variance,
+          consumption_date: actualConsumption ? getRandomDate(new Date(2024, 0, 1), new Date()) : null,
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      });
+    }
+  }
+
+  // Criando estoque para produtos (complementando Stock existente)
+  for (const product of products) {
+    // Verificar se já existe estoque para este produto
+    const existingStock = await dbClient.stock.findFirst({
+      where: { product_id: product.id }
+    });
+    
+    if (!existingStock) {
+      await dbClient.stock.create({
+        data: {
+          amount: Math.floor(getRandomNumber(0, 1000)),
+          location: getRandomElement(["Galpão A", "Galpão B", "Depósito Central", "Setor C"]),
+          product_id: product.id,
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      });
+    }
+  }
+
+  // Criando preços para produtos
+  for (const product of products) {
+    // Cada produto terá um preço padrão (customer_id null)
+    await dbClient.prices.create({
+      data: {
+        product_id: product.id,
+        customer_id: null, // Preço padrão
+        production_cost: getRandomNumber(5, 25),
+        operational_margin: getRandomNumber(20, 40),
+        final_price: getRandomNumber(10, 50),
+        second_line_price: Math.random() > 0.5 ? getRandomNumber(8, 45) : null,
+        frozen_until: Math.random() > 0.7 ? getRandomDate(new Date(), new Date(2024, 11, 31)) : null,
+        status: getRandomElement(["verde", "amarelo", "vermelho"]),
+        created_at: new Date()
+      }
+    });
+    
+    // Alguns produtos terão preços específicos para clientes
+    if (Math.random() > 0.6) {
+      const customer = getRandomElement(customers);
+      try {
+        await dbClient.prices.create({
+          data: {
+            product_id: product.id,
+            customer_id: customer.id,
+            production_cost: getRandomNumber(5, 25),
+            operational_margin: getRandomNumber(15, 35), // Margem diferente para cliente específico
+            final_price: getRandomNumber(8, 45),
+            second_line_price: Math.random() > 0.5 ? getRandomNumber(6, 40) : null,
+            frozen_until: Math.random() > 0.8 ? getRandomDate(new Date(), new Date(2024, 11, 31)) : null,
+            status: getRandomElement(["verde", "amarelo", "vermelho"]),
+            created_at: new Date()
+          }
+        });
+      } catch (error) {
+        // Ignorar erro se já existe preço para este produto/cliente
+        console.log(`Preço já existe para produto ${product.id} e cliente ${customer.id}`);
+      }
+    }
+  }
+
+  // Criando atores de despesas (ExpenseActor)
+  const createdExpenseActors = [];
+  
+  // Atores baseados em funcionários
+  const someEmployees = employees.slice(0, 3);
+  for (const employee of someEmployees) {
+    const expenseActor = await dbClient.expenseActor.create({
+      data: {
+        first_name: employee.name.split(' ')[0],
+        last_name: employee.name.split(' ').slice(1).join(' '),
+        whatsapp_telegram: employee.cel_number,
+        store_name: null,
+        employee_id: employee.id,
+        vendor_id: null,
+        customer_id: null,
+        order_id: null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdExpenseActors.push(expenseActor);
+  }
+
+  // Atores baseados em fornecedores
+  const someVendors = createdVendors.slice(0, 2);
+  for (const vendor of someVendors) {
+    const expenseActor = await dbClient.expenseActor.create({
+      data: {
+        first_name: vendor.name.split(' ')[0],
+        last_name: vendor.name.split(' ').slice(1).join(' '),
+        whatsapp_telegram: vendor.cel_number,
+        store_name: vendor.store_name,
+        employee_id: null,
+        vendor_id: vendor.id,
+        customer_id: null,
+        order_id: null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdExpenseActors.push(expenseActor);
+  }
+
+  // Atores baseados em clientes
+  const someCustomers = customers.slice(0, 2);
+  for (const customer of someCustomers) {
+    const expenseActor = await dbClient.expenseActor.create({
+      data: {
+        first_name: customer.name.split(' ')[0],
+        last_name: customer.name.split(' ').slice(1).join(' '),
+        whatsapp_telegram: customer.cel_number,
+        store_name: customer.store_name,
+        employee_id: null,
+        vendor_id: null,
+        customer_id: customer.id,
+        order_id: null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdExpenseActors.push(expenseActor);
+  }
+
+  // Criando despesas (Expenses)
+  const expenseClassifications = [
+    "Manutenção",
+    "Suprimentos",
+    "Transporte",
+    "Energia",
+    "Comunicação",
+    "Consultoria",
+    "Treinamento",
+    "Equipamentos"
+  ];
+
+  const expenseDescriptions = [
+    "Manutenção preventiva de máquinas",
+    "Compra de material de escritório",
+    "Combustível para entregas",
+    "Conta de energia elétrica",
+    "Serviços de internet e telefone",
+    "Consultoria em qualidade",
+    "Treinamento de funcionários",
+    "Aquisição de novos equipamentos",
+    "Reparo de equipamento danificado",
+    "Material de limpeza",
+    "Seguro de equipamentos",
+    "Taxa de licenciamento"
+  ];
+
+  const justifications = [
+    "Necessário para manter operação funcionando",
+    "Aprovado pela diretoria para melhorar eficiência",
+    "Urgente para atender demanda de cliente",
+    "Manutenção preventiva obrigatória",
+    "Investimento em qualidade do produto",
+    "Redução de custos operacionais",
+    "Melhoria do ambiente de trabalho",
+    "Conformidade com normas regulamentares"
+  ];
+
+  const createdExpenses = [];
+  
+  for (let i = 0; i < 20; i++) {
+    const expenseActor = getRandomElement(createdExpenseActors);
+    const expense = await dbClient.expenses.create({
+      data: {
+        amount: getRandomNumber(50, 5000),
+        classification: getRandomElement(expenseClassifications),
+        description: getRandomElement(expenseDescriptions),
+        justification: getRandomElement(justifications),
+        requires_reimbursement: Math.random() > 0.7, // 30% requer reembolso
+        applies_all_products: Math.random() > 0.8, // 20% aplica a todos produtos
+        applies_all_machines: Math.random() > 0.8, // 20% aplica a todas máquinas
+        expense_date: getRandomDate(new Date(2024, 0, 1), new Date()),
+        expense_actor_id: expenseActor.id,
+        created_by: "seed",
+        updated_by: "seed",
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdExpenses.push(expense);
+  }
+
+  // Criando relacionamentos ExpenseMachines
+  const machines = await dbClient.machines.findMany();
+  
+  for (const expense of createdExpenses) {
+    // Se não aplica a todas as máquinas, criar relacionamentos específicos
+    if (!expense.applies_all_machines && Math.random() > 0.5) {
+      const numMachines = Math.floor(Math.random() * 3) + 1; // 1 a 3 máquinas
+      const selectedMachines = [...machines]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numMachines);
+      
+      for (const machine of selectedMachines) {
+        try {
+          await dbClient.expenseMachines.create({
+            data: {
+              expense_id: expense.id,
+              machine_id: machine.id
+            }
+          });
+        } catch (error) {
+          // Ignorar se já existe relação
+        }
+      }
+    }
+  }
+
+  // Criando relacionamentos ExpenseProducts
+  for (const expense of createdExpenses) {
+    // Se não aplica a todos os produtos, criar relacionamentos específicos
+    if (!expense.applies_all_products && Math.random() > 0.5) {
+      const numProducts = Math.floor(Math.random() * 4) + 1; // 1 a 4 produtos
+      const selectedProducts = [...products]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numProducts);
+      
+      for (const product of selectedProducts) {
+        try {
+          await dbClient.expenseProducts.create({
+            data: {
+              expense_id: expense.id,
+              product_id: product.id
+            }
+          });
+        } catch (error) {
+          // Ignorar se já existe relação
+        }
+      }
+    }
+  }
+
+  // Criando relacionamentos ExpenseProcedures
+  const procedures = await dbClient.procedures.findMany();
+  
+  for (const expense of createdExpenses) {
+    // 40% das despesas estão relacionadas a procedimentos
+    if (Math.random() > 0.6) {
+      const numProcedures = Math.floor(Math.random() * 2) + 1; // 1 a 2 procedimentos
+      const selectedProcedures = [...procedures]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numProcedures);
+      
+      for (const procedure of selectedProcedures) {
+        try {
+          await dbClient.expenseProcedures.create({
+            data: {
+              expense_id: expense.id,
+              procedure_id: procedure.id
+            }
+          });
+        } catch (error) {
+          // Ignorar se já existe relação
+        }
+      }
+    }
+  }
+
+  // Criando relacionamentos ExpenseOrders
+  for (const expense of createdExpenses) {
+    // 30% das despesas estão relacionadas a pedidos específicos
+    if (Math.random() > 0.7) {
+      const numOrders = Math.floor(Math.random() * 2) + 1; // 1 a 2 pedidos
+      const selectedOrders = [...orders]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, numOrders);
+      
+      for (const order of selectedOrders) {
+        try {
+          await dbClient.expenseOrders.create({
+            data: {
+              expense_id: expense.id,
+              order_id: order.id
+            }
+          });
+        } catch (error) {
+          // Ignorar se já existe relação
+        }
+      }
+    }
+  }
+  
+  console.log("🎉 Seeds criados com sucesso!");
+  console.log("📊 Resumo dos dados criados:");
+  console.log(`   - ${userTypes.length} usuários`);
+  console.log(`   - ${addressesData.length} endereços`);
+  console.log(`   - 10 clientes`);
+  console.log(`   - 8 funcionários`);
+  console.log(`   - 10 máquinas`);
+  console.log(`   - 8 procedimentos`);
+  console.log(`   - 12 produtos`);
+  console.log(`   - 6 fornecedores`);
+  console.log(`   - 15 pedidos de materiais`);
+  console.log(`   - 5 pedidos de vendas`);
+  console.log(`   - 7 atores de despesas`);
+  console.log(`   - 20 despesas + relacionamentos`);
+  console.log(`   - E muito mais...`);
+  console.log("✨ Banco de dados populado e pronto para uso!");
 }
 
 main()
