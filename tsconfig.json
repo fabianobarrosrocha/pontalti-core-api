@@ -1,6 +1,7 @@
 {
   "ts-node": {
-    "require": ["tsconfig-paths/register"]
+    "require": ["tsconfig-paths/register"],
+    "transpileOnly": true
   },
   "compilerOptions": {
     "experimentalDecorators": true,
