@@ -102,6 +102,10 @@ const deleteEmployeeWorkHour = async (id: number) => {
   return await repository.deleteEmployeeWorkHour(id);
 };
 
+const getWorkHoursReport = async (startDate: Date, endDate: Date, employeeId?: number) => {
+  return await repository.getWorkHoursReport(startDate, endDate, employeeId);
+};
+
 export default {
   createWorkHour,
   getWorkHours,
@@ -109,6 +113,7 @@ export default {
   getEmployeeWorkHourByDay,
   getAllWorkHoursToday,
   updatePartialEmployeeWorkHour,
-  deleteEmployeeWorkHour
+  deleteEmployeeWorkHour,
+  getWorkHoursReport
 };
 

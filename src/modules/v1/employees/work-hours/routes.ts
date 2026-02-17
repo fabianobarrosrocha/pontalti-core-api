@@ -66,6 +66,29 @@ routes.get('/today', (req: Request, res: Response, next: NextFunction) => {
     })
 })
 
+// Report: Get all work hours with optional employee filter
+routes.get('/report', (req: Request, res: Response, next: NextFunction) => {
+  const { startDate, endDate, employee_id } = req.query;
+
+  if (!startDate || !endDate) {
+    const httpError = createHttpError(400, 'startDate e endDate sao obrigatorios');
+    return next(httpError);
+  }
+
+  workHourService.getWorkHoursReport(
+    new Date(startDate.toString()),
+    new Date(endDate.toString()),
+    employee_id ? Number(employee_id) : undefined
+  )
+    .then(result => {
+      res.json(result)
+    })
+    .catch(e => {
+      const httpError = createHttpError(e)
+      next(httpError)
+    })
+})
+
 routes.get('/test', (req, res) => {
   res.status(200).json(req.headers);
 });

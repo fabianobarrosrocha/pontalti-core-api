@@ -111,6 +111,32 @@ const deleteEmployeeWorkHour = async (id: number) => {
   return await prisma.workHours.delete({ where: { id } });
 };
 
+const getWorkHoursReport = async (startDate: Date, endDate: Date, employeeId?: number) => {
+  try {
+    const whereClause: any = {
+      clock_in: {
+        gte: startAndEndOfDate(startDate).startOfDay,
+        lte: startAndEndOfDate(endDate).endOfDay
+      }
+    };
+
+    if (employeeId) {
+      whereClause.employee_id = employeeId;
+    }
+
+    return await prisma.workHours.findMany({
+      where: whereClause,
+      include: { employee: true },
+      orderBy: [
+        { clock_in: 'desc' }
+      ]
+    });
+  } catch (e) {
+    console.log(e);
+    dbErrorHandle(e);
+  }
+};
+
 export default {
   createEmployeeWorkHour,
   getEmployeeWorkHour,
@@ -118,5 +144,6 @@ export default {
   getTodayEmployeeWorkHour,
   getTodayWorkHour,
   updatePartialEmployeeWorkHour,
-  deleteEmployeeWorkHour
+  deleteEmployeeWorkHour,
+  getWorkHoursReport
 };

@@ -64,6 +64,7 @@ async function main() {
   // 6. Entidades principais (ordem inversa de dependência)
   await dbClient.procedures.deleteMany();
   await dbClient.machines.deleteMany();
+  await dbClient.locations.deleteMany();
   await dbClient.products.deleteMany();
   await dbClient.vendors.deleteMany();
   await dbClient.employees.deleteMany();
@@ -206,9 +207,42 @@ async function main() {
     }
   }
 
+  // Criando localizações
+  console.log("📍 Criando localizações...");
+  const locationsData = [
+    { name: "Ilha 1", code: "ILHA-1", color: "#3b82f6", width: 200, height: 150 },
+    { name: "Ilha 2", code: "ILHA-2", color: "#22c55e", width: 200, height: 150 },
+    { name: "Setor A", code: "SETOR-A", color: "#ef4444", width: 250, height: 180 },
+    { name: "Setor B", code: "SETOR-B", color: "#eab308", width: 250, height: 180 },
+    { name: "Galpão A", code: "GALP-A", color: "#a855f7", width: 300, height: 200 },
+    { name: "Galpão B", code: "GALP-B", color: "#f97316", width: 300, height: 200 },
+    { name: "Depósito Central", code: "DEP-CENTRAL", color: "#06b6d4", width: 350, height: 250 },
+    { name: "Setor C", code: "SETOR-C", color: "#6366f1", width: 250, height: 180 }
+  ];
+
+  const createdLocations = [];
+  for (let i = 0; i < locationsData.length; i++) {
+    const loc = locationsData[i];
+    const createdLocation = await dbClient.locations.create({
+      data: {
+        name: loc.name,
+        code: loc.code,
+        status: 1,
+        position_x: (i % 4) * 320 + 50,
+        position_y: Math.floor(i / 4) * 280 + 50,
+        width: loc.width,
+        height: loc.height,
+        color: loc.color,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    createdLocations.push(createdLocation);
+  }
+
   // Criando máquinas
+  console.log("🏭 Criando máquinas...");
   const machineModels = ["Dublagem", "Corte", "Costura", "Acabamento"];
-  const locations = ["Ilha 1", "Ilha 2", "Setor A", "Setor B"];
 
   for (let i = 1; i <= 10; i++) {
     await dbClient.machines.create({
@@ -216,7 +250,7 @@ async function main() {
         model: getRandomElement(machineModels),
         machine_number: i,
         status: Math.floor(Math.random() * 2),
-        location: getRandomElement(locations),
+        location_id: getRandomElement(createdLocations).id,
         location_status: Math.floor(Math.random() * 3),
         created_at: new Date(),
         updated_at: new Date()
@@ -721,12 +755,12 @@ async function main() {
     const existingStock = await dbClient.stock.findFirst({
       where: { product_id: product.id }
     });
-    
+
     if (!existingStock) {
       await dbClient.stock.create({
         data: {
           amount: Math.floor(getRandomNumber(0, 1000)),
-          location: getRandomElement(["Galpão A", "Galpão B", "Depósito Central", "Setor C"]),
+          location_id: getRandomElement(createdLocations).id,
           product_id: product.id,
           created_at: new Date(),
           updated_at: new Date()

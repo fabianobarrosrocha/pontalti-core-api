@@ -13,7 +13,10 @@ const createMachine = async (data: MachineRegister) => {
 };
 
 const getMachine = async (id: number) => {
-  return await prisma.machines.findUnique({ where: { id } });
+  return await prisma.machines.findUnique({
+    where: { id },
+    include: { location: true }
+  });
 };
 
 const getMachines = async (filters: CommonRequest<Machine>) => {
@@ -21,7 +24,8 @@ const getMachines = async (filters: CommonRequest<Machine>) => {
   const skip = page !== 1 && page != undefined ? (page - 1) * perPage : undefined;
   return await prisma.machines.findMany({
     take: perPage,
-    skip: skip
+    skip: skip,
+    include: { location: true }
   });
 };
 

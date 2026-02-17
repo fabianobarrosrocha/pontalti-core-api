@@ -6,7 +6,7 @@ const createStock = async (data: StockRegister): Promise<Stock> => {
   try {
     return await prisma.stock.create({
       data,
-      include: { product: true }
+      include: { product: true, location: true }
     });
   } catch(e) {
     dbErrorHandle(e);
@@ -15,7 +15,7 @@ const createStock = async (data: StockRegister): Promise<Stock> => {
 
 const getStock = async (id: number): Promise<Stock> => {
   try {
-    return await prisma.stock.findUnique({ where: { id }, include: { product: true } });
+    return await prisma.stock.findUnique({ where: { id }, include: { product: true, location: true } });
   } catch(e) {
     dbErrorHandle(e);
   }
@@ -27,7 +27,7 @@ const getStocks = async (filters: StockRequest): Promise<PaginationResponse<Stoc
     const skip = page !== 1 ? (page - 1) * perPage : undefined;
     const result = await prisma.stock.findMany({
       where,
-      include: { product: true },
+      include: { product: true, location: true },
       take: perPage,
       skip
     });
@@ -47,19 +47,20 @@ const getStocks = async (filters: StockRequest): Promise<PaginationResponse<Stoc
 const updatePartialStock = async (id: number, data: Partial<Stock>): Promise<Stock> => {
   try {
     // Só permitir atualização dos campos válidos
-    const { amount, location, product } = data;
-    // Se quiser permitir troca de produto, aceite product_id
+    const { amount } = data;
     // @ts-ignore
     const updateData: any = {};
     if (amount !== undefined) updateData.amount = amount;
-    if (location !== undefined) updateData.location = location;
     // Permitir troca de produto
     // @ts-ignore
     if (data.product_id !== undefined) updateData.product_id = data.product_id;
+    // Permitir troca de localização
+    // @ts-ignore
+    if (data.location_id !== undefined) updateData.location_id = data.location_id;
     return await prisma.stock.update({
       where: { id },
       data: updateData,
-      include: { product: true }
+      include: { product: true, location: true }
     });
   } catch(e) {
     dbErrorHandle(e);
@@ -68,7 +69,7 @@ const updatePartialStock = async (id: number, data: Partial<Stock>): Promise<Sto
 
 const deleteStock = async (id: number): Promise<Stock> => {
   try {
-    return await prisma.stock.delete({ where: { id }, include: { product: true } });
+    return await prisma.stock.delete({ where: { id }, include: { product: true, location: true } });
   } catch(e) {
     dbErrorHandle(e);
   }

@@ -27,6 +27,8 @@ import salesForecasts from '@pontalti/modules/v1/sales-forecasts/routes'
 import labelPrints from '@pontalti/modules/v1/label-prints/routes'
 import expenses from '@pontalti/modules/v1/expenses/routes'
 import purchaseForecast from '@pontalti/modules/v1/purchase-forecast/routes'
+import locations from '@pontalti/modules/v1/locations/routes'
+import timeAdjustmentRequests from '@pontalti/modules/v1/time-adjustment-requests/routes'
 
 const routes = Router();
 
@@ -61,5 +63,7 @@ routes.use('/label-prints', labelPrints);
 routes.use('/expenses', expenses);
 routes.use('/purchase-forecast', purchaseForecast);
 routes.use("/calendar", calendar);
+routes.use("/locations", locations);
+routes.use("/time-adjustment-requests", timeAdjustmentRequests);
 
 export default routes;

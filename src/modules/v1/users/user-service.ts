@@ -1,4 +1,4 @@
-import { User } from "@pontalti/types/user.types";
+import { User, RegisterUser } from "@pontalti/types/user.types";
 import repository from "@pontalti/repository/user";
 import bcrypt from 'bcrypt'
 
@@ -14,6 +14,17 @@ const removePassword = (u: User | User[]) => {
 
   const { password, ...userWithoutPassword } = u
   return userWithoutPassword
+}
+
+const createUser = async (data: RegisterUser) => {
+  try {
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const userData = { ...data, password: passwordHash };
+    const userResponse = await repository.registerUser(userData);
+    return removePassword(userResponse);
+  } catch(e) {
+    throw e;
+  }
 }
 
 const getAllUsers = async () => {
@@ -36,7 +47,10 @@ const getUserByEmail = async (email: string) => {
 
 const updatePartialUser = async (id: number, data: Partial<User>) => {
   try {
-    if (data.password) {
+    // Remove password from update if it's empty or undefined
+    if (!data.password || data.password.trim() === '') {
+      delete data.password;
+    } else {
       const passwordHash = await bcrypt.hash(data.password, 10);
       data.password = passwordHash;
     }
@@ -57,6 +71,7 @@ const deleteUser = async (id: number) => {
 }
 
 export default {
+  createUser,
   getAllUsers,
   getUserByEmail,
   updatePartialUser,
