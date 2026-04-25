@@ -192,7 +192,7 @@ model WorkHours {
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
 
-  employee              Employees               @relation(fields: [employee_id], references: [id])
+  employee               Employees               @relation(fields: [employee_id], references: [id])
   timeAdjustmentRequests TimeAdjustmentRequest[]
 }
 
@@ -227,16 +227,16 @@ enum TimeAdjustmentStatus {
 model TimeAdjustmentRequest {
   id                 Int                  @id @default(autoincrement())
   employee_id        Int
-  work_hour_id       Int?                 // Referencia ao ponto especifico (null = novo ponto)
-  original_clock_in  DateTime             // Horario original de entrada
-  original_clock_out DateTime?            // Horario original de saida
-  proposed_clock_in  DateTime?            // Nova entrada proposta
-  proposed_clock_out DateTime?            // Nova saida proposta
-  reason             String?              // Justificativa (opcional)
+  work_hour_id       Int? // Referencia ao ponto especifico (null = novo ponto)
+  original_clock_in  DateTime // Horario original de entrada
+  original_clock_out DateTime? // Horario original de saida
+  proposed_clock_in  DateTime? // Nova entrada proposta
+  proposed_clock_out DateTime? // Nova saida proposta
+  reason             String? // Justificativa (opcional)
   status             TimeAdjustmentStatus @default(PENDING)
-  admin_comment      String?              // Comentario do admin (obrigatorio ao revisar)
-  reviewed_by        Int?                 // ID do admin que revisou
-  reviewed_at        DateTime?            // Data da revisao
+  admin_comment      String? // Comentario do admin (obrigatorio ao revisar)
+  reviewed_by        Int? // ID do admin que revisou
+  reviewed_at        DateTime? // Data da revisao
   created_at         DateTime             @default(now())
   updated_at         DateTime             @updatedAt
 
@@ -323,6 +323,7 @@ model ProductReturns {
   return_reason         String
   replacement_necessary Boolean
   resold                Boolean
+  storage_location      String
   date                  DateTime
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt

@@ -1,16 +1,30 @@
-import { Status } from '@pontalti/types/common.types';
-import * as yup from 'yup';
+import * as yup from "yup";
+import { sanitizeBoolean } from "@pontalti/utils/sanitizer";
 
-const createMaterialOrderSchema = yup.object({
+const createProductReturnSchema = yup.object({
   body: yup.object({
-    final_price: yup.number().required(),
-    amount: yup.number().required(),
-    date: yup.date().required(),
-    customer_id: yup.number().required(),
-    product_id: yup.number().required()
+    product_return: yup
+      .object({
+        date: yup.date().required(),
+        replacement_necessary: yup.boolean().required().transform(sanitizeBoolean),
+        resold: yup.boolean().required().transform(sanitizeBoolean),
+        return_reason: yup.string().required(),
+        storage_location: yup.string().required(),
+        order_id: yup.number().required().positive().integer()
+      })
+      .required(),
+    returned_labels: yup
+      .array()
+      .of(
+        yup.object({
+          ticket_code: yup.string().required(),
+          opened: yup.boolean().required().transform(sanitizeBoolean),
+          quantity: yup.number().required().positive().integer()
+        })
+      )
+      .required()
+      .min(1)
   })
-})
+});
 
-export {
-  createMaterialOrderSchema
-}
+export { createProductReturnSchema };

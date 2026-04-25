@@ -9,6 +9,7 @@ const defaultSelectedFieldForProductReturn = {
   return_reason: true,
   replacement_necessary: true,
   resold: true,
+  storage_location: true,
   date: true,
   created_at: true,
   updated_at: true,
@@ -20,15 +21,19 @@ const defaultSelectedFieldForProductReturn = {
 const createProductReturn = async (product_return: ProductReturnRegister, returned_labels: ReturnedLabelRegister[]) => {
   try {
     const result = await prisma.$transaction(async (transaction) => {
-      const registeredProductReturns = await prisma.productReturns.create({ data: {
-        date: new Date(product_return.date),
-        replacement_necessary: product_return.replacement_necessary,
-        resold: product_return.resold,
-        return_reason: product_return.return_reason,
-        order_id: product_return.order_id,
-      }, select: defaultSelectedFieldForProductReturn });
+      const registeredProductReturns = await prisma.productReturns.create({
+        data: {
+          date: new Date(product_return.date),
+          replacement_necessary: product_return.replacement_necessary,
+          resold: product_return.resold,
+          storage_location: product_return.storage_location,
+          return_reason: product_return.return_reason,
+          order_id: product_return.order_id
+        },
+        select: defaultSelectedFieldForProductReturn
+      });
       const labelsEntries = await Promise.all(
-        returned_labels.map(async returned_label => {
+        returned_labels.map(async (returned_label) => {
           return transaction.returnedLabels.create({
             data: {
               ticket_code: returned_label.ticket_code,
