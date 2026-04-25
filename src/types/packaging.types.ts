@@ -18,7 +18,7 @@ export interface PackagingWithRelations extends Packaging {
     customer: {
       id: number;
       name: string;
-      email: string;
+      email?: string | null;
       store_name: string;
     }
   }[];

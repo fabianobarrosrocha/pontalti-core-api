@@ -11,7 +11,7 @@ export interface CustomerPackagingWithRelations extends CustomerPackaging {
   customer: {
     id: number;
     name: string;
-    email: string;
+    email?: string | null;
     store_name: string;
     status: number;
     credit_limit: number;

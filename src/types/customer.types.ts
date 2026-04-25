@@ -5,9 +5,9 @@ export type Customer = {
   id: number;
   name: string;
   status: Status;
-  phone: string;
-  cel_number: string;
-  email: string;
+  phone?: string | null;
+  cel_number?: string | null;
+  email?: string | null;
   store_name: string;
   deliver: boolean;
   pontalti: boolean;
@@ -15,8 +15,8 @@ export type Customer = {
   credit_limit: number;
   debts: number;
   address: Address;
-  cpf: string;
-  cnpj: string;
+  cpf?: string | null;
+  cnpj?: string | null;
   created_at: Date;
   updated_at: Date;
 };

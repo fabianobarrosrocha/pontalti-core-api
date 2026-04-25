@@ -7,8 +7,8 @@ export type Vendor = {
   store_name: string;
   cnpj: string;
   status: Status;
-  phone: string;
-  cel_number: string;
+  phone?: string | null;
+  cel_number?: string | null;
   deliver: boolean;
   volume_purchases: number;
   purchases: number;

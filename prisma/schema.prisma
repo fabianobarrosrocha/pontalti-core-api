@@ -38,9 +38,9 @@ model Customers {
   credit_limit   Float
   debts          Float
   name           String
-  phone          String
-  cel_number     String
-  email          String   @unique
+  phone          String?
+  cel_number     String?
+  email          String?  @unique
   store_name     String
   deliver        Boolean
   pontalti       Boolean
@@ -89,8 +89,8 @@ model Vendors {
   store_name       String
   cnpj             String   @unique
   status           Int
-  phone            String
-  cel_number       String
+  phone            String?
+  cel_number       String?
   deliver          Boolean
   volume_purchases Float
   purchases        Float
