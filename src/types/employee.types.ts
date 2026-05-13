@@ -13,6 +13,7 @@ export type Employee = {
   cel_number: string;
   cpf: string;
   classification: Classification;
+  birth_date?: Date;
   admission: Date;
   salary?: number;
   dismissal_date?: Date;

@@ -10,6 +10,7 @@ const createEmployeeSchema = yup.object({
     cel_number: yup.string().required().transform(sanitizeSpecialCharacters).length(11),
     cpf: yup.string().required().transform(sanitizeSpecialCharacters),
     classification: yup.mixed<Classification>().oneOf([Classification.funcionario, Classification.em_teste, Classification.externo, Classification.gerente]).required(),
+    birth_date: yup.date().optional(),
     admission: yup.date().required(),
     salary: yup.number().optional(),
     dismissal_date: yup.date().optional(),

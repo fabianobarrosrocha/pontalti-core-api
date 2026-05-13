@@ -69,6 +69,7 @@ model Employees {
   cel_number     String
   cpf            String    @unique
   classification Int
+  birth_date     DateTime?
   admission      DateTime
   salary         Float?
   dismissal_date DateTime?
