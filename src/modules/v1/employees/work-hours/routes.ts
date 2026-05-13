@@ -75,9 +75,15 @@ routes.get('/report', (req: Request, res: Response, next: NextFunction) => {
     return next(httpError);
   }
 
+  // Datas vêm como yyyy-MM-dd e devem ser interpretadas no fuso local do
+  // servidor (não UTC) para evitar que o range volte um dia em fuso negativo.
+  const parseLocalDate = (value: string): Date => {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+  };
+
   workHourService.getWorkHoursReport(
-    new Date(startDate.toString()),
-    new Date(endDate.toString()),
+    parseLocalDate(startDate.toString()),
+    parseLocalDate(endDate.toString()),
     employee_id ? Number(employee_id) : undefined
   )
     .then(result => {
