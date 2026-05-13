@@ -71,6 +71,9 @@ async function main() {
   await dbClient.customers.deleteMany();
   await dbClient.adresses.deleteMany();
   await dbClient.users.deleteMany();
+  await dbClient.moldes.deleteMany();
+  await dbClient.espumas.deleteMany();
+  await dbClient.cores.deleteMany();
 
   console.log("✅ Dados limpos com sucesso!");
   console.log("🌱 Iniciando criação de seeds...");
@@ -90,6 +93,50 @@ async function main() {
         ...userType,
         password: await bcrypt.hash("123", 10),
       }
+    });
+  }
+
+  // Criando catálogos de Cores, Espumas e Moldes
+  console.log("🎨 Criando catálogos (Cores, Espumas, Moldes)...");
+  const coresSeed = [
+    { name: "Preto", short_code: "PRT", hex_code: "#000000" },
+    { name: "Branco", short_code: "BCO", hex_code: "#FFFFFF" },
+    { name: "Bege", short_code: "BEG", hex_code: "#D5B895" },
+    { name: "Marrom", short_code: "MRR", hex_code: "#6B4423" },
+    { name: "Vermelho", short_code: "VRM", hex_code: "#D32F2F" }
+  ];
+  for (const cor of coresSeed) {
+    await dbClient.cores.upsert({
+      where: { name: cor.name },
+      update: { short_code: cor.short_code, hex_code: cor.hex_code, status: 1 },
+      create: { ...cor, status: 1 }
+    });
+  }
+
+  const espumasSeed = [
+    { name: "D28", short_code: "D28", density: "28kg/m³" },
+    { name: "D33", short_code: "D33", density: "33kg/m³" },
+    { name: "D40", short_code: "D40", density: "40kg/m³" }
+  ];
+  for (const espuma of espumasSeed) {
+    await dbClient.espumas.upsert({
+      where: { name: espuma.name },
+      update: { short_code: espuma.short_code, density: espuma.density, status: 1 },
+      create: { ...espuma, status: 1 }
+    });
+  }
+
+  const moldesSeed = [
+    { name: "Molde 18", short_code: "M18", size: "18" },
+    { name: "Molde 20", short_code: "M20", size: "20" },
+    { name: "Molde 22", short_code: "M22", size: "22" },
+    { name: "Molde 24", short_code: "M24", size: "24" }
+  ];
+  for (const molde of moldesSeed) {
+    await dbClient.moldes.upsert({
+      where: { name: molde.name },
+      update: { short_code: molde.short_code, size: molde.size, status: 1 },
+      create: { ...molde, status: 1 }
     });
   }
 
