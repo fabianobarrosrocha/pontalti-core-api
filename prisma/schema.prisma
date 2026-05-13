@@ -44,13 +44,14 @@ model Espumas {
 }
 
 model Moldes {
-  id         Int      @id @default(autoincrement())
-  name       String   @unique
-  short_code String   @unique
-  size       String?
-  status     Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  short_code  String   @unique
+  size        String
+  description String?
+  status      Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
 model Adresses {

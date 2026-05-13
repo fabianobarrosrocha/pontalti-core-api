@@ -114,10 +114,9 @@ async function main() {
   }
 
   const espumasSeed = [
-    { name: "D28 P", short_code: "D28P", size: "P", description: "28kg/m³" },
-    { name: "D28 M", short_code: "D28M", size: "M", description: "28kg/m³" },
-    { name: "D33 M", short_code: "D33M", size: "M", description: "33kg/m³" },
-    { name: "D40 G", short_code: "D40G", size: "G", description: "40kg/m³" }
+    { name: "D28", short_code: "D28", size: "28kg/m³", description: null as string | null },
+    { name: "D33", short_code: "D33", size: "33kg/m³", description: null as string | null },
+    { name: "D40", short_code: "D40", size: "40kg/m³", description: null as string | null }
   ];
   for (const espuma of espumasSeed) {
     await dbClient.espumas.upsert({
@@ -133,15 +132,20 @@ async function main() {
   }
 
   const moldesSeed = [
-    { name: "Molde 18", short_code: "M18", size: "18" },
-    { name: "Molde 20", short_code: "M20", size: "20" },
-    { name: "Molde 22", short_code: "M22", size: "22" },
-    { name: "Molde 24", short_code: "M24", size: "24" }
+    { name: "Molde P", short_code: "MP", size: "P", description: "Tamanho 18" },
+    { name: "Molde M", short_code: "MM", size: "M", description: "Tamanho 20" },
+    { name: "Molde G", short_code: "MG", size: "G", description: "Tamanho 22" },
+    { name: "Molde GG", short_code: "MGG", size: "GG", description: "Tamanho 24" }
   ];
   for (const molde of moldesSeed) {
     await dbClient.moldes.upsert({
       where: { name: molde.name },
-      update: { short_code: molde.short_code, size: molde.size, status: 1 },
+      update: {
+        short_code: molde.short_code,
+        size: molde.size,
+        description: molde.description,
+        status: 1
+      },
       create: { ...molde, status: 1 }
     });
   }

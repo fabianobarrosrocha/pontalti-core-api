@@ -11,7 +11,8 @@ const createMoldSchema = yup.object({
       .required()
       .uppercase()
       .matches(shortCodePattern, "short_code deve ter 2-5 letras/dígitos maiúsculos"),
-    size: yup.string().optional().nullable(),
+    size: yup.string().required().trim().min(1, "Informe o tamanho."),
+    description: yup.string().optional().nullable(),
     status: yup.mixed<Status>().oneOf([Status.Suspenso, Status.Operacional]).required()
   })
 });
@@ -24,7 +25,8 @@ const updateMoldSchema = yup.object({
       .optional()
       .uppercase()
       .matches(shortCodePattern, "short_code deve ter 2-5 letras/dígitos maiúsculos"),
-    size: yup.string().optional().nullable(),
+    size: yup.string().optional().trim().min(1),
+    description: yup.string().optional().nullable(),
     status: yup.mixed<Status>().oneOf([Status.Suspenso, Status.Operacional]).optional()
   })
 });
