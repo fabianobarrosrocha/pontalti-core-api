@@ -2,7 +2,8 @@ export type Foam = {
   id: number;
   name: string;
   short_code: string;
-  density?: string | null;
+  size: string;
+  description?: string | null;
   status: number;
   created_at: Date;
   updated_at: Date;

@@ -114,14 +114,20 @@ async function main() {
   }
 
   const espumasSeed = [
-    { name: "D28", short_code: "D28", density: "28kg/m³" },
-    { name: "D33", short_code: "D33", density: "33kg/m³" },
-    { name: "D40", short_code: "D40", density: "40kg/m³" }
+    { name: "D28 P", short_code: "D28P", size: "P", description: "28kg/m³" },
+    { name: "D28 M", short_code: "D28M", size: "M", description: "28kg/m³" },
+    { name: "D33 M", short_code: "D33M", size: "M", description: "33kg/m³" },
+    { name: "D40 G", short_code: "D40G", size: "G", description: "40kg/m³" }
   ];
   for (const espuma of espumasSeed) {
     await dbClient.espumas.upsert({
       where: { name: espuma.name },
-      update: { short_code: espuma.short_code, density: espuma.density, status: 1 },
+      update: {
+        short_code: espuma.short_code,
+        size: espuma.size,
+        description: espuma.description,
+        status: 1
+      },
       create: { ...espuma, status: 1 }
     });
   }
