@@ -2,7 +2,12 @@ import * as yup from 'yup';
 
 const createMaterialOrderSchema = yup.object({
   body: yup.object({
-    date: yup.date().required(),
+    date: yup
+      .date()
+      .test('not-future', 'A data do recebimento não pode ser futura.', (value) => {
+        return !value || value.getTime() <= Date.now();
+      })
+      .required(),
     amount: yup.number().integer().required(),
     unit: yup.string().required(),
     storage_location: yup.string().required(),
