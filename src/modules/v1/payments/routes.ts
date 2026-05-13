@@ -6,7 +6,7 @@ import { validate } from "@pontalti/utils/validator";
 
 const routes = Router();
 
-routes.post('/', (req, res, next) => {
+routes.post('/', validate(createPaymentSchema), (req, res, next) => {
   paymentService.createPayment(req.body)
     .then(result => {
       res.json(result)

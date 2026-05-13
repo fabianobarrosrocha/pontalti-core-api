@@ -1,13 +1,11 @@
-import { Status } from '@pontalti/types/common.types';
 import * as yup from 'yup';
 
 const createPaymentSchema = yup.object({
   body: yup.object({
-    final_price: yup.number().required(),
-    amount: yup.number().required(),
+    amount_paid: yup.number().required(),
     date: yup.date().required(),
-    customer_id: yup.number().required(),
-    product_id: yup.number().required()
+    payment_method: yup.string().required(),
+    order_id: yup.number().integer().required()
   })
 })
 
