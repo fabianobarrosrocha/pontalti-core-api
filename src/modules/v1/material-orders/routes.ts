@@ -6,7 +6,7 @@ import { validate } from "@pontalti/utils/validator";
 
 const routes = Router();
 
-routes.post('/', (req, res, next) => {
+routes.post('/', validate(createMaterialOrderSchema), (req, res, next) => {
   materialOrderService.createMaterialOrder(req.body)
     .then(result => {
       res.json(result)
