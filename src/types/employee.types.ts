@@ -1,7 +1,8 @@
 export enum Classification {
   funcionario,
   em_teste,
-  externo
+  externo,
+  gerente
 }
 
 export type Employee = {
