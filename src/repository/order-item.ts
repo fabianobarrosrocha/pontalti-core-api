@@ -6,6 +6,8 @@ import { defaultSelectedFieldForOrders } from "@pontalti/repository/order"
 
 export const defaultSelectedFieldForOrdersItems = {
   quantity: true,
+  unit_price: true,
+  registered_price: true,
   order: { select: defaultSelectedFieldForOrders },
   product: {
     select: {
@@ -30,11 +32,16 @@ export const defaultSelectedFieldForOrdersItems = {
 };
 
 const createOrderItem = async (data: OrderItemRegister): Promise<OrderItem> => {
-  return await prisma.orderItems.create({ data: {
-    quantity: data.quantity,
-    product_id: data.product_id,
-    order_id: data.order_id
-  }, select: defaultSelectedFieldForOrdersItems });
+  return await prisma.orderItems.create({
+    data: {
+      quantity: data.quantity,
+      product_id: data.product_id,
+      order_id: data.order_id,
+      unit_price: data.unit_price,
+      registered_price: data.registered_price ?? null
+    },
+    select: defaultSelectedFieldForOrdersItems
+  });
 };
 
 // const getOrder = async (id: number) => {

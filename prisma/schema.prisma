@@ -325,11 +325,13 @@ model Orders {
 }
 
 model OrderItems {
-  order_id   Int
-  product_id Int
-  quantity   Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  order_id         Int
+  product_id       Int
+  quantity         Int
+  unit_price       Float
+  registered_price Float?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
   order   Orders   @relation(fields: [order_id], references: [id])
   product Products @relation(fields: [product_id], references: [id])

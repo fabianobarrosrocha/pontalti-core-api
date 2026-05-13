@@ -63,7 +63,9 @@ const createOrder = async (orderDetails: OrderRegister, products: ProductIdAndQu
             data: {
               order_id: registeredOrder.id,
               product_id: product.id,
-              quantity: product.quantity
+              quantity: product.quantity,
+              unit_price: product.unit_price,
+              registered_price: product.registered_price ?? null
             }
           });
         })

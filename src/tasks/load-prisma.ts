@@ -548,11 +548,14 @@ async function main() {
       const product = getRandomElement(availableProducts);
       usedProducts.add(product.id); // Marca o produto como usado
       
+      const unitPrice = getRandomNumber(20, 80);
       await dbClient.orderItems.create({
         data: {
           order_id: order.id,
           product_id: product.id,
           quantity: Math.floor(Math.random() * 5) + 1,
+          unit_price: unitPrice,
+          registered_price: unitPrice,
           created_at: new Date(),
           updated_at: new Date()
         }
