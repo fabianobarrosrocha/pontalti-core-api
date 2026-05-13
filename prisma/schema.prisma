@@ -253,6 +253,7 @@ model TimeAdjustmentRequest {
 model Orders {
   id          Int      @id @default(autoincrement())
   final_price Float
+  discount    Float    @default(0)
   date        DateTime
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt

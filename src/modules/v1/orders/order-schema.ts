@@ -4,6 +4,7 @@ const createOrderSchema = yup.object({
   body: yup.object({
     order: yup.object({
       final_price: yup.number().required(),
+      discount: yup.number().min(0).optional(),
       date: yup.date().required(),
       customer_id: yup.number().required(),
     }),

@@ -6,6 +6,7 @@ import { OrderItemRegister, ProductIdAndQuantity } from "@pontalti/types/order-i
 export const defaultSelectedFieldForOrders = {
   id: true,
   final_price: true,
+  discount: true,
   date: true,
   created_at: true,
   updated_at: true,
@@ -50,6 +51,7 @@ const createOrder = async (orderDetails: OrderRegister, products: ProductIdAndQu
       const registeredOrder = await transaction.orders.create({
         data: {
           final_price: orderDetails.final_price,
+          discount: orderDetails.discount ?? 0,
           date: new Date(orderDetails.date),
           customer_id: orderDetails.customer_id
         }
