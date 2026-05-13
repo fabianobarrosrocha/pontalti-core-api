@@ -27,7 +27,7 @@ router.get("/dashboard/data", async (req, res, next) => {
             products: {
               include: {
                 product: {
-                  select: { id: true, name: true, model: true }
+                  select: { id: true, sku: true, type: true, inner_color: true, outer_color: true, foam: true, mold: true }
                 }
               }
             }
