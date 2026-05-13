@@ -42,6 +42,18 @@ router.get("/email", (req, res, next) => {
     });
 });
 
+router.get("/:id", (req, res, next) => {
+  userService
+    .getUserById(Number(req.params.id))
+    .then((result) => {
+      res.json(result);
+    })
+    .catch((e) => {
+      const httpError = createHttpError(e);
+      next(httpError);
+    });
+});
+
 router.get("/", (req, res, next) => {
   userService
     .getAllUsers()

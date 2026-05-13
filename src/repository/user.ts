@@ -25,6 +25,14 @@ const getUserByEmail = async (email: string): Promise<User> => {
   }
 }
 
+const getUserById = async (id: number): Promise<User> => {
+  try {
+    return await prisma.users.findUnique({ where: { id }})
+  } catch(e) {
+    dbErrorHandle(e)
+  }
+}
+
 const updateUser = async (id: number, data: User) => {
   try {
     console.log(data.password)
@@ -71,6 +79,7 @@ export default {
   registerUser,
   getAllUsers,
   getUserByEmail,
+  getUserById,
   updateUser,
   updatePartialUser,
   deleteUser

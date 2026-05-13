@@ -45,6 +45,15 @@ const getUserByEmail = async (email: string) => {
   }
 }
 
+const getUserById = async (id: number) => {
+  try {
+    const userResponse = removePassword(await repository.getUserById(id))
+    return userResponse;
+  } catch(e) {
+    throw e
+  }
+}
+
 const updatePartialUser = async (id: number, data: Partial<User>) => {
   try {
     // Remove password from update if it's empty or undefined
@@ -74,6 +83,7 @@ export default {
   createUser,
   getAllUsers,
   getUserByEmail,
+  getUserById,
   updatePartialUser,
   deleteUser
 }
