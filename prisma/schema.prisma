@@ -22,6 +22,36 @@ model Users {
   updated_at   DateTime    @updatedAt
 }
 
+model Cores {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  short_code String   @unique
+  hex_code   String?
+  status     Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Espumas {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  short_code String   @unique
+  density    String?
+  status     Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Moldes {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  short_code String   @unique
+  size       String?
+  status     Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
 model Adresses {
   id             Int     @id @default(autoincrement())
   zip_code       String

@@ -29,6 +29,9 @@ import expenses from '@pontalti/modules/v1/expenses/routes'
 import purchaseForecast from '@pontalti/modules/v1/purchase-forecast/routes'
 import locations from '@pontalti/modules/v1/locations/routes'
 import timeAdjustmentRequests from '@pontalti/modules/v1/time-adjustment-requests/routes'
+import colors from '@pontalti/modules/v1/colors/routes'
+import foams from '@pontalti/modules/v1/foams/routes'
+import molds from '@pontalti/modules/v1/molds/routes'
 
 const routes = Router();
 
@@ -65,5 +68,8 @@ routes.use('/purchase-forecast', purchaseForecast);
 routes.use("/calendar", calendar);
 routes.use("/locations", locations);
 routes.use("/time-adjustment-requests", timeAdjustmentRequests);
+routes.use("/colors", colors);
+routes.use("/foams", foams);
+routes.use("/molds", molds);
 
 export default routes;
