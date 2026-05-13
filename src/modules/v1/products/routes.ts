@@ -1,6 +1,7 @@
 import { Router } from "express";
 import createHttpError from "http-errors";
 import productService from "@pontalti/modules/v1/products/product-service";
+import productStatsService from "@pontalti/modules/v1/products/product-stats-service";
 import {
   createProductSchema,
   updateProductSchema,
@@ -27,6 +28,13 @@ routes.post("/", validate(createProductSchema), (req, res, next) => {
 routes.get("/", (req, res, next) => {
   productService
     .getAllProducts(req.params)
+    .then((result) => res.json(result))
+    .catch((e) => next(createHttpError(e)));
+});
+
+routes.get("/:id/stats", (req, res, next) => {
+  productStatsService
+    .getProductStats(Number(req.params.id))
     .then((result) => res.json(result))
     .catch((e) => next(createHttpError(e)));
 });
