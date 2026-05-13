@@ -77,10 +77,10 @@ async function main() {
 
   // Criando usuários com diferentes níveis de acesso
   const userTypes = [
-    { email: "admin@pontalti.com", name: "Admin Master", isAdmin: true },
-    { email: "gerente@pontalti.com", name: "Gerente", isAdmin: true },
-    { email: "vendedor@pontalti.com", name: "Vendedor", isAdmin: false },
-    { email: "operador@pontalti.com", name: "Operador", isAdmin: false }
+    { email: "admin@pontalti.com", name: "Admin Master", access_level: "administrator" as const },
+    { email: "gerente@pontalti.com", name: "Gerente", access_level: "administrator" as const },
+    { email: "vendedor@pontalti.com", name: "Vendedor", access_level: "standard" as const },
+    { email: "operador@pontalti.com", name: "Operador", access_level: "standard" as const }
   ];
 
   console.log("👥 Criando usuários...");

@@ -8,7 +8,7 @@ import { validate } from "@pontalti/utils/validator";
 const router = Router();
 
 router.post("/register", validate(createUserSchema), (req, res, next) => {
-  authenticationService.register({ email: req.body.email, name: req.body.name, password: req.body.password, isAdmin: req.body.isAdmin } as RegisterUser)
+  authenticationService.register({ email: req.body.email, name: req.body.name, password: req.body.password, access_level: req.body.access_level } as RegisterUser)
     .then((result) => {
       res.json(result);
     })
