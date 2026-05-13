@@ -22,6 +22,11 @@ model Users {
   updated_at   DateTime    @updatedAt
 }
 
+enum ProductType {
+  bojo
+  dublado
+}
+
 model Cores {
   id         Int      @id @default(autoincrement())
   name       String   @unique
@@ -30,6 +35,9 @@ model Cores {
   status     Int
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  productInnerColors Products[] @relation("ProductInnerColor")
+  productOuterColors Products[] @relation("ProductOuterColor")
 }
 
 model Espumas {
@@ -41,6 +49,8 @@ model Espumas {
   status      Int
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  products Products[]
 }
 
 model Moldes {
@@ -52,6 +62,8 @@ model Moldes {
   status      Int
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  products Products[]
 }
 
 model Adresses {
@@ -143,19 +155,21 @@ model Vendors {
 }
 
 model Products {
-  id           Int      @id @default(autoincrement())
-  status       Int
-  volume_sales Float
-  sales        Float
-  invoicing    Float
-  name         String
-  model        String
-  size         String
-  character    String
-  moldes       Int
-  equivalency  Float
-  created_at   DateTime @default(now())
-  updated_at   DateTime
+  id             Int         @id @default(autoincrement())
+  type           ProductType
+  inner_color_id Int
+  foam_id        Int
+  outer_color_id Int
+  mold_id        Int?
+  sku            String      @unique
+  status         Int
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  inner_color Cores   @relation("ProductInnerColor", fields: [inner_color_id], references: [id])
+  outer_color Cores   @relation("ProductOuterColor", fields: [outer_color_id], references: [id])
+  foam        Espumas @relation(fields: [foam_id], references: [id])
+  mold        Moldes? @relation(fields: [mold_id], references: [id])
 
   materialOrders  MaterialOrders[]
   orders          OrderItems[]
@@ -163,8 +177,9 @@ model Products {
   stock           Stock[]
   salesForecasts  SalesForecasts[]
   expenseProducts ExpenseProducts[]
-  // Relacionamentos para receitas
   productRecipes  ProductRecipe[]   @relation("ProductRecipes")
+
+  @@unique([type, inner_color_id, foam_id, outer_color_id, mold_id])
 }
 
 model Locations {

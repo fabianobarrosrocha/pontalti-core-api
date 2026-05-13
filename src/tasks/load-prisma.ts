@@ -330,32 +330,68 @@ async function main() {
     });
   }
 
-  // Criando produtos
-  const productTypes = [
-    { name: "Bojo", model: "Casca", size: "18", character: "Sem aba" },
-    { name: "Bojo", model: "Casca", size: "20", character: "Com aba" },
-    { name: "Bojo", model: "Dublagem", size: "22", character: "Sem aba" },
-    { name: "Bojo", model: "Dublagem", size: "24", character: "Com aba" }
-  ];
+  // Criando produtos (variantes a partir de Cores, Espumas e Moldes)
+  console.log("🧵 Criando variantes de produto...");
+  const allColors = await dbClient.cores.findMany();
+  const allFoams = await dbClient.espumas.findMany();
+  const allMolds = await dbClient.moldes.findMany();
 
-  for (let i = 1; i <= 12; i++) {
-    const productType = getRandomElement(productTypes);
-    await dbClient.products.create({
-      data: {
-        status: Math.floor(Math.random() * 2),
-        volume_sales: getRandomNumber(100, 1000),
-        sales: getRandomNumber(50, 500),
-        invoicing: getRandomNumber(1000, 10000),
-        name: productType.name,
-        model: productType.model,
-        size: productType.size,
-        character: productType.character,
-        moldes: Math.floor(Math.random() * 5) + 1,
-        equivalency: getRandomNumber(100, 1000),
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    });
+  type ProductTypeValue = "bojo" | "dublado";
+  const buildSku = (
+    typeValue: ProductTypeValue,
+    inner: string,
+    foam: string,
+    outer: string,
+    mold?: string
+  ) => {
+    const prefix = typeValue === "bojo" ? "BJ" : "DB";
+    const parts = [prefix, inner, foam, outer];
+    if (typeValue === "bojo" && mold) parts.push(mold);
+    return parts.join("-");
+  };
+
+  if (allColors.length >= 2 && allFoams.length >= 1) {
+    // Gera 4 variantes de Bojo + 4 de Dublado misturando catálogos
+    for (let i = 0; i < 4; i++) {
+      const inner = allColors[i % allColors.length];
+      const outer = allColors[(i + 1) % allColors.length];
+      const foam = allFoams[i % allFoams.length];
+      const mold = allMolds[i % Math.max(allMolds.length, 1)];
+      if (!mold) break;
+      const sku = buildSku("bojo", inner.short_code, foam.short_code, outer.short_code, mold.short_code);
+      await dbClient.products.upsert({
+        where: { sku },
+        update: { status: 1 },
+        create: {
+          type: "bojo",
+          inner_color_id: inner.id,
+          foam_id: foam.id,
+          outer_color_id: outer.id,
+          mold_id: mold.id,
+          sku,
+          status: 1
+        }
+      });
+    }
+    for (let i = 0; i < 4; i++) {
+      const inner = allColors[i % allColors.length];
+      const outer = allColors[(i + 2) % allColors.length];
+      const foam = allFoams[(i + 1) % allFoams.length];
+      const sku = buildSku("dublado", inner.short_code, foam.short_code, outer.short_code);
+      await dbClient.products.upsert({
+        where: { sku },
+        update: { status: 1 },
+        create: {
+          type: "dublado",
+          inner_color_id: inner.id,
+          foam_id: foam.id,
+          outer_color_id: outer.id,
+          mold_id: null,
+          sku,
+          status: 1
+        }
+      });
+    }
   }
 
   // Criando fornecedores

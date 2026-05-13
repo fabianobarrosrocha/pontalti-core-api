@@ -14,16 +14,17 @@ const defaultSelectedFieldForMaterialOrder = {
   product: {
     select: {
       id: true,
+      type: true,
+      sku: true,
       status: true,
-      volume_sales: true,
-      sales: true,
-      invoicing: true,
-      name: true,
-      model: true,
-      size: true,
-      character: true,
-      moldes: true,
-      equivalency: true,
+      inner_color_id: true,
+      foam_id: true,
+      outer_color_id: true,
+      mold_id: true,
+      inner_color: true,
+      outer_color: true,
+      foam: true,
+      mold: true,
       created_at: true,
       updated_at: true
     }
