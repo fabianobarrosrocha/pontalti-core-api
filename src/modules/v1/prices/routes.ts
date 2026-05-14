@@ -30,11 +30,25 @@ router.get('/:id', (req, res, next) => {
     });
 });
 
-// Buscar preço por produto e cliente
-router.get('/product/:productId/customer/:customerId?', (req, res, next) => {
+// Buscar preço padrão de um produto (customer_id NULL) — usado pelo Pedido
+// quando ainda não há cliente selecionado, ou como fallback do specific lookup
+router.get('/product/:productId', (req, res, next) => {
   const productId = Number(req.params.productId);
-  const customerId = req.params.customerId ? Number(req.params.customerId) : undefined;
-  
+  priceService.getPriceByProductAndCustomer(productId, undefined)
+    .then(result => {
+      res.json(result);
+    })
+    .catch(e => {
+      const httpError = createHttpError(e);
+      next(httpError);
+    });
+});
+
+// Buscar preço por produto e cliente (cai para o padrão se específico não existir)
+router.get('/product/:productId/customer/:customerId', (req, res, next) => {
+  const productId = Number(req.params.productId);
+  const customerId = Number(req.params.customerId);
+
   priceService.getPriceByProductAndCustomer(productId, customerId)
     .then(result => {
       res.json(result);

@@ -69,15 +69,19 @@ const getPriceById = async (id: number): Promise<Price> => {
   }
 };
 
-const getPriceByProductAndCustomer = async (product_id: number, customer_id?: number): Promise<Price> => {
+const getPriceByProductAndCustomer = async (product_id: number, customer_id?: number): Promise<Price | null> => {
   try {
-    return await prisma.prices.findUnique({
-      where: {
-        product_id_customer_id: {
-          product_id,
-          customer_id
-        }
-      },
+    // Tenta primeiro o preço específico do cliente, se fornecido
+    if (customer_id) {
+      const specific = await prisma.prices.findFirst({
+        where: { product_id, customer_id },
+        include: defaultInclude
+      });
+      if (specific) return specific;
+    }
+    // Fallback: preço padrão (customer_id null)
+    return await prisma.prices.findFirst({
+      where: { product_id, customer_id: null },
       include: defaultInclude
     });
   } catch (e) {
