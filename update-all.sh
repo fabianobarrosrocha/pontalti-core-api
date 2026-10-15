@@ -19,12 +19,16 @@ Pode ser chamado de qualquer diretório. Execute com o usuário dos aplicativos.
   --restart   Após TODOS os builds, reinicia os processos PM2 que já estavam
               online e cujo cwd é uma das três pastas dos aplicativos.
               Inclui o worker WhatsApp se estiver online na pasta da loja.
-  --https     Usa HTTPS nos novos clones (o padrão é SSH). Não altera origins.
+  --https     Usa HTTPS em clones e atualizações, inclusive em origins SSH,
+              sem alterar as URLs configuradas nos repositórios.
   --help      Mostra esta ajuda.
 
 Pré-requisitos: Bash, Git, Node.js >= 22 e npm; PM2 para --restart.
 O acesso Git precisa incluir os repositórios privados pontalti e
 pontalti-marketplace. --git-only dispensa Node.js, npm e PM2.
+Para HTTPS com repositórios privados, autentique antes com:
+  gh auth login --hostname github.com --git-protocol https --web
+  gh auth setup-git
 
 O painel usa Yarn 1.22.22 pelo npm exec; API e loja usam npm ci.
 Arquivos .env e certificados devem ser configurados separadamente, sobretudo
@@ -37,6 +41,8 @@ Alterações locais, commits locais não publicados, branches diferentes das
 esperadas e pastas ocupadas sem Git interrompem a atualização.
 Se a pasta pai ainda não tem Git, inicializa nela o repositório de documentação;
 arquivos existentes em conflito impedem o checkout e devem ser conciliados.
+Se os aplicativos estão diretamente na pasta pessoal, clona a documentação
+em ~/pontalti, mantendo o Git da documentação fora da raiz da pasta pessoal.
 
 Exemplos:
   bash update-all.sh --git-only
@@ -51,6 +57,24 @@ repository_url() {
   else
     printf 'git@github.com:fabianobarrosrocha/%s.git' "$1"
   fi
+}
+
+remote_git() {
+  local status=0
+
+  if [[ "$use_https" == true ]]; then
+    git -c 'url.https://github.com/.insteadOf=git@github.com:' \
+      -c 'url.https://github.com/.insteadOf=ssh://git@github.com/' "$@" || status=$?
+  else
+    git "$@" || status=$?
+  fi
+
+  if [[ "$status" -ne 0 ]]; then
+    printf '\nFalha no acesso Git. Se aparecer "Permission denied (publickey)", configure a chave SSH ou use --https.\n' >&2
+    printf 'Para HTTPS, autentique uma conta com acesso aos repositórios privados:\n' >&2
+    printf '  gh auth login --hostname github.com --git-protocol https --web\n  gh auth setup-git\n' >&2
+  fi
+  return "$status"
 }
 
 check_repository() {
@@ -69,8 +93,12 @@ check_repository() {
 
   [[ "$(cd -- "$(git -C "$directory" rev-parse --show-toplevel)" && pwd -P)" == "$directory" ]] ||
     fail "Raiz Git inesperada em $directory."
-  [[ -z "$(git -C "$directory" status --porcelain --untracked-files=normal)" ]] ||
+  if [[ -n "$(git -C "$directory" status --porcelain --untracked-files=normal)" ]]; then
+    printf '\nArquivos com alterações em %s:\n' "$directory" >&2
+    git -C "$directory" status --short --untracked-files=normal >&2
+    printf 'Para conferir o resumo: git -C %q diff --stat\n' "$directory" >&2
     fail "Há alterações locais em $directory. Faça commit ou preserve-as antes de atualizar."
+  fi
 
   current_branch="$(git -C "$directory" symbolic-ref --quiet --short HEAD || true)"
   [[ "$current_branch" == "$branch" ]] ||
@@ -87,12 +115,12 @@ fetch_repository() {
   local directory="$1" repository="$2" branch="$3"
 
   if [[ -e "$directory/.git" ]]; then
-    git -C "$directory" fetch origin "$branch"
+    remote_git -C "$directory" fetch origin "$branch"
     git -C "$directory" merge-base --is-ancestor HEAD FETCH_HEAD ||
       fail "$directory tem commits locais ou histórico divergente. Concilie com origin/$branch primeiro."
     fetched_commits+=("$(git -C "$directory" rev-parse FETCH_HEAD)")
   else
-    git ls-remote --exit-code "$(repository_url "$repository")" "refs/heads/$branch" >/dev/null
+    remote_git ls-remote --exit-code "$(repository_url "$repository")" "refs/heads/$branch" >/dev/null
     fetched_commits+=("")
   fi
 }
@@ -108,11 +136,11 @@ update_repository() {
     git init "$workspace_dir"
     git -C "$workspace_dir" symbolic-ref HEAD "refs/heads/$branch"
     git -C "$workspace_dir" remote add origin "$(repository_url "$repository")"
-    git -C "$workspace_dir" fetch origin "$branch"
+    remote_git -C "$workspace_dir" fetch origin "$branch"
     git -C "$workspace_dir" checkout -b "$branch" --track "origin/$branch"
   else
     # O cd .. em main já nos deixou na pasta pai da API.
-    git clone --branch "$branch" --single-branch "$(repository_url "$repository")" "${directory##*/}"
+    remote_git clone --branch "$branch" --single-branch "$(repository_url "$repository")" "${directory##*/}"
   fi
 }
 
@@ -135,7 +163,7 @@ install_and_build() (
 )
 
 main() {
-  local git_only=false restart=false use_https=false option script_dir workspace_dir
+  local git_only=false restart=false use_https=false option script_dir workspace_dir documentation_dir user_home_dir
   local index directory node_version pm2_ids=""
   local -a directories repositories branches fetched_commits=()
 
@@ -165,7 +193,12 @@ main() {
   cd -- "$script_dir"
   cd ..
   workspace_dir="$(pwd -P)"
-  directories=("$workspace_dir" "$workspace_dir/pontalti-core-api" "$workspace_dir/factory-control" "$workspace_dir/marketplace-frontend")
+  user_home_dir="$(cd -- "$HOME" && pwd -P)"
+  documentation_dir="$workspace_dir"
+  if [[ "$workspace_dir" == "$user_home_dir" ]]; then
+    documentation_dir="$workspace_dir/pontalti"
+  fi
+  directories=("$documentation_dir" "$workspace_dir/pontalti-core-api" "$workspace_dir/factory-control" "$workspace_dir/marketplace-frontend")
   repositories=(pontalti pontalti-core-api factory-control pontalti-marketplace)
   branches=(main master master main)
   printf 'Workspace: %s\n' "$workspace_dir"
