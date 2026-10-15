@@ -18,7 +18,7 @@ routes.post('/', validate(createOrderSchema), (req, res, next) => {
 })
 
 routes.get('/', (req, res, next) => {
-  orderService.getAllOrders(req.params)
+  orderService.getAllOrders(req.query as never)
     .then(result => {
       res.json(result)
     })

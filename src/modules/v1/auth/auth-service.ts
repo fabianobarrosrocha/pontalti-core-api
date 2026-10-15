@@ -36,7 +36,8 @@ const login = async (email: string, password: string) => {
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, process.env.PRIVATE_KEY, {
       expiresIn: "1d"
     });
-    return { token, user };
+    const { password: passwordHash, ...publicUser } = user;
+    return { token, user: publicUser };
   } catch (e) {
     throw e;
   }

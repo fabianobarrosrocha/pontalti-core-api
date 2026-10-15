@@ -1,4 +1,5 @@
 import { Customer, CustomerRegister, CustomerRequest } from "@pontalti/types/customer.types";
+import { assertCustomerMutation, customerFinanceLock } from "@pontalti/modules/v1/customer-finance/legacy";
 import prisma, { dbErrorHandle } from "@pontalti/lib/prisma";
 import { CommonRequest, PaginationResponse } from "@pontalti/types/common.types";
 
@@ -139,29 +140,11 @@ const getCustomers = async (filters: CustomerRequest): Promise<PaginationRespons
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const updatePartialCustomer = async (id: number, data: any): Promise<Customer> => {
-  try{
-    const existingCustomer = await prisma.customers.findUnique({
-      where: { id }
-    });
-
-    if (!existingCustomer) {
-      throw new Error("Customer not found");
-    }
-
-    const updatedCustomer = await prisma.customers.update({
-      where: { id },
-      data: {
-        ...existingCustomer,
-        ...data,
-        updated_at: new Date()
-      },
-      select: defaultSelectedFieldForCustomers
-    });
-
-    return updatedCustomer;
-  } catch(e) {
-    dbErrorHandle(e)
-  }
+  return prisma.$transaction(async tx => {
+    await customerFinanceLock(tx);
+    await assertCustomerMutation(tx, id, data);
+    return tx.customers.update({ where: { id }, data: { ...data, updated_at: new Date() }, select: defaultSelectedFieldForCustomers });
+  });
 };
 
 const deleteCustomer = async (id: number): Promise<Customer> => {

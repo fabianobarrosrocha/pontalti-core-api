@@ -35,7 +35,6 @@ const getUserById = async (id: number): Promise<User> => {
 
 const updateUser = async (id: number, data: User) => {
   try {
-    console.log(data.password)
     return await prisma.users.update({
       where: { id },
       data: { ...data }

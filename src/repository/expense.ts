@@ -1,4 +1,5 @@
 import prisma, { dbErrorHandle } from "@pontalti/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { PaginationResponse } from "@pontalti/types/common.types";
 import { Expense, ExpenseRegister, ExpenseRequest } from "@pontalti/types/expense.types";
 
@@ -60,7 +61,7 @@ const getExpenses = async (filters: ExpenseRequest): Promise<PaginationResponse<
   } catch (e) { dbErrorHandle(e); }
 };
 
-const updatePartialExpense = async (id: number, data: Partial<ExpenseRegister>): Promise<Expense> => {
+const updatePartialExpense = async (id: number, data: Partial<ExpenseRegister>, tx: Prisma.TransactionClient = prisma): Promise<Expense> => {
   try {
     const editable = [
       "amount", "classification", "description", "justification", "requires_reimbursement",
@@ -68,13 +69,13 @@ const updatePartialExpense = async (id: number, data: Partial<ExpenseRegister>):
     ];
     const updateData: any = {};
     for (const key of editable) if ((data as any)[key] !== undefined) updateData[key] = (data as any)[key];
-    const updated = await (prisma as any).expenses.update({ where: { id }, data: updateData, select: defaultSelect });
+    const updated = await tx.expenses.update({ where: { id }, data: updateData, select: defaultSelect });
     return mapDecimal(updated);
   } catch (e) { dbErrorHandle(e); }
 };
 
-const deleteExpense = async (id: number): Promise<Expense> => {
-  try { const deleted = await (prisma as any).expenses.delete({ where: { id }, select: defaultSelect }); return mapDecimal(deleted); } catch (e) { dbErrorHandle(e); }
+const deleteExpense = async (id: number, tx: Prisma.TransactionClient = prisma): Promise<Expense> => {
+  try { const deleted = await tx.expenses.delete({ where: { id }, select: defaultSelect }); return mapDecimal(deleted); } catch (e) { dbErrorHandle(e); }
 };
 
 export default {
@@ -84,5 +85,4 @@ export default {
   updatePartialExpense,
   deleteExpense,
 };
-
 

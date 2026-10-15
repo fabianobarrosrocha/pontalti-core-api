@@ -32,12 +32,14 @@ import timeAdjustmentRequests from '@pontalti/modules/v1/time-adjustment-request
 import colors from '@pontalti/modules/v1/colors/routes'
 import foams from '@pontalti/modules/v1/foams/routes'
 import molds from '@pontalti/modules/v1/molds/routes'
+import banking from '@pontalti/modules/v1/banking/routes'
+
+import { createAdminFinanceRouter } from "./customer-finance/routes";
 
 const routes = Router();
+routes.use("/customer-finance", createAdminFinanceRouter());
 
-routes.get('/test', (req, res) => {
-  res.status(200).json(req.headers);
-});
+routes.use('/banking', banking);
 
 routes.use('/customers', customers);
 routes.use('/employees', employees);

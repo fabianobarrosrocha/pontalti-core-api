@@ -1,20 +1,18 @@
 import { DefaultResponse } from "@pontalti/types/common.types";
+import { CustomerMessageConfig, CustomerMessageSchedule, MessageTemplate } from "@prisma/client";
 import {
-  CreateCustomerMessageConfigData,
-  UpdateCustomerMessageConfigData,
-  CreateCustomerMessageScheduleData,
-  UpdateCustomerMessageScheduleData,
-  CreateMessageTemplateData,
-  UpdateMessageTemplateData,
-  CustomerMessageConfig,
-  CustomerMessageSchedule,
-  MessageTemplate
+  CreateMessageConfig,
+  UpdateMessageConfig,
+  CreateMessageSchedule,
+  UpdateMessageSchedule,
+  CreateMessageTemplate,
+  UpdateMessageTemplate
 } from "@pontalti/types/message.types";
 import repository from "@pontalti/repository/message";
 import { NotFoundError } from "@pontalti/utils/errors";
 
 // Customer Message Config
-const createMessageConfig = async (data: CreateCustomerMessageConfigData): Promise<DefaultResponse<CustomerMessageConfig>> => {
+const createMessageConfig = async (data: CreateMessageConfig): Promise<DefaultResponse<CustomerMessageConfig>> => {
   try {
     const response = await repository.createMessageConfig(data);
     return { data: response };
@@ -47,7 +45,7 @@ const getMessageConfigByCustomerId = async (customer_id: number): Promise<Defaul
   }
 };
 
-const updateMessageConfig = async (id: number, data: UpdateCustomerMessageConfigData): Promise<DefaultResponse<CustomerMessageConfig>> => {
+const updateMessageConfig = async (id: number, data: UpdateMessageConfig): Promise<DefaultResponse<CustomerMessageConfig>> => {
   try {
     const existingConfig = await repository.getMessageConfigById(id);
     if (!existingConfig) {
@@ -76,7 +74,7 @@ const deleteMessageConfig = async (id: number): Promise<DefaultResponse<Customer
 };
 
 // Customer Message Schedule
-const createMessageSchedule = async (data: CreateCustomerMessageScheduleData): Promise<DefaultResponse<CustomerMessageSchedule>> => {
+const createMessageSchedule = async (data: CreateMessageSchedule): Promise<DefaultResponse<CustomerMessageSchedule>> => {
   try {
     const response = await repository.createMessageSchedule(data);
     return { data: response };
@@ -85,7 +83,7 @@ const createMessageSchedule = async (data: CreateCustomerMessageScheduleData): P
   }
 };
 
-const updateMessageSchedule = async (id: number, data: UpdateCustomerMessageScheduleData): Promise<DefaultResponse<CustomerMessageSchedule>> => {
+const updateMessageSchedule = async (id: number, data: UpdateMessageSchedule): Promise<DefaultResponse<CustomerMessageSchedule>> => {
   try {
     const response = await repository.updateMessageSchedule(id, data);
     return { data: response };
@@ -104,7 +102,7 @@ const deleteMessageSchedule = async (id: number): Promise<DefaultResponse<Custom
 };
 
 // Message Templates
-const createMessageTemplate = async (data: CreateMessageTemplateData): Promise<DefaultResponse<MessageTemplate>> => {
+const createMessageTemplate = async (data: CreateMessageTemplate): Promise<DefaultResponse<MessageTemplate>> => {
   try {
     const response = await repository.createMessageTemplate(data);
     return { data: response };
@@ -113,7 +111,7 @@ const createMessageTemplate = async (data: CreateMessageTemplateData): Promise<D
   }
 };
 
-const getMessageTemplateById = async (id: number): Promise<DefaultResponse<MessageTemplate>> => {
+const getMessageTemplateById = async (id: string): Promise<DefaultResponse<MessageTemplate>> => {
   try {
     const template = await repository.getMessageTemplateById(id);
     if (!template) {
@@ -134,7 +132,7 @@ const getAllMessageTemplates = async (): Promise<DefaultResponse<MessageTemplate
   }
 };
 
-const updateMessageTemplate = async (id: number, data: UpdateMessageTemplateData): Promise<DefaultResponse<MessageTemplate>> => {
+const updateMessageTemplate = async (id: string, data: UpdateMessageTemplate): Promise<DefaultResponse<MessageTemplate>> => {
   try {
     const existingTemplate = await repository.getMessageTemplateById(id);
     if (!existingTemplate) {
@@ -148,7 +146,7 @@ const updateMessageTemplate = async (id: number, data: UpdateMessageTemplateData
   }
 };
 
-const deleteMessageTemplate = async (id: number): Promise<DefaultResponse<MessageTemplate>> => {
+const deleteMessageTemplate = async (id: string): Promise<DefaultResponse<MessageTemplate>> => {
   try {
     const existingTemplate = await repository.getMessageTemplateById(id);
     if (!existingTemplate) {
@@ -181,4 +179,4 @@ export default {
   getAllMessageTemplates,
   updateMessageTemplate,
   deleteMessageTemplate
-}; 
+};

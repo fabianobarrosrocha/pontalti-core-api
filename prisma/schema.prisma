@@ -13,13 +13,19 @@ enum AccessLevel {
 }
 
 model Users {
-  id           Int         @id @default(autoincrement())
-  email        String      @unique
-  password     String
-  name         String
-  access_level AccessLevel
-  created_at   DateTime    @default(now())
-  updated_at   DateTime    @updatedAt
+  id                    Int                    @id @default(autoincrement())
+  email                 String                 @unique
+  password              String
+  name                  String
+  access_level          AccessLevel
+  created_at            DateTime               @default(now())
+  updated_at            DateTime               @updatedAt
+  bankPayrollRuns       BankPayrollRun[]
+  financialAudit        FinancialAuditEvent[]
+  bankNotificationReads BankNotificationRead[]
+  bankPayments          BankPayment[]
+  bankPayables          BankPayable[]
+  bankReceipts          BankPayableReceipt[]
 }
 
 enum ProductType {
@@ -104,10 +110,15 @@ model Customers {
   Order  Orders[]
   prices Prices[]
 
-  messageConfig  CustomerMessageConfig[]
-  packagings     CustomerPackaging[]
-  salesForecasts SalesForecasts[]
-  expenseActors  ExpenseActor[]
+  messageConfig    CustomerMessageConfig[]
+  packagings       CustomerPackaging[]
+  salesForecasts   SalesForecasts[]
+  expenseActors    ExpenseActor[]
+  financeLinks     CustomerFinanceLink[]
+  financeEntries   CustomerFinanceEntry[]
+  financePurchases CustomerFinancePurchase[]
+  financeDeposits  CustomerFinanceDeposit[]
+  financeRevisions CustomerFinanceRevision[]
 }
 
 model Employees {
@@ -130,6 +141,9 @@ model Employees {
   vacations              Vacations[]
   expenseActors          ExpenseActor[]
   timeAdjustmentRequests TimeAdjustmentRequest[]
+  bankAccount            BankEmployeeAccount?
+  bankTransfers          BankTransfer[]
+  bankBeneficiaries      BankBeneficiary[]
 }
 
 model Vendors {
@@ -150,8 +164,9 @@ model Vendors {
 
   address Adresses @relation(fields: [address_id], references: [id])
 
-  materialOrders MaterialOrders[]
-  expenseActors  ExpenseActor[]
+  materialOrders    MaterialOrders[]
+  expenseActors     ExpenseActor[]
+  bankBeneficiaries BankBeneficiary[]
 }
 
 model Products {
@@ -307,6 +322,7 @@ model Orders {
   final_price Float
   discount    Float    @default(0)
   date        DateTime
+  status      Int      @default(1) // 1: Registrado na fábrica (confirmed), 2: Em produção, 3: Enviado, 4: Entregue, 5: Cancelado — espelha os status da loja online
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
   customer_id Int
@@ -322,6 +338,7 @@ model Orders {
   labelPrints       LabelPrints[]
   expenseActors     ExpenseActor[]
   expenseOrders     ExpenseOrders[]
+  financePurchase   CustomerFinancePurchase?
 }
 
 model OrderItems {
@@ -350,7 +367,8 @@ model Payments {
 
   order_id Int
 
-  order Orders @relation(fields: [order_id], references: [id])
+  order        Orders                @relation(fields: [order_id], references: [id])
+  financeEntry CustomerFinanceEntry?
 }
 
 model MaterialOrders {
@@ -437,11 +455,14 @@ model Expenses {
   updated_at             DateTime @updatedAt
   updated_by             String?
 
-  actor      ExpenseActor        @relation(fields: [expense_actor_id], references: [id])
-  machines   ExpenseMachines[]
-  products   ExpenseProducts[]
-  procedures ExpenseProcedures[]
-  orders     ExpenseOrders[]
+  actor        ExpenseActor        @relation(fields: [expense_actor_id], references: [id])
+  machines     ExpenseMachines[]
+  products     ExpenseProducts[]
+  procedures   ExpenseProcedures[]
+  orders       ExpenseOrders[]
+  bankTransfer BankTransfer?       @relation("TransferExpense")
+  bankReversal BankTransfer?       @relation("TransferReversal")
+  payable      BankPayable?
 
   @@index([expense_actor_id])
 }
@@ -509,6 +530,278 @@ model ExpenseOrders {
   order   Orders   @relation(fields: [order_id], references: [id])
 
   @@id([expense_id, order_id])
+}
+
+enum BankEnvironment {
+  STAGE
+  PRODUCTION
+}
+
+enum PayrollKind {
+  SALARY
+  ADVANCE
+  VACATION
+  BONUS
+}
+
+enum BankTransferStatus {
+  DRAFT
+  QUEUED
+  SUBMITTING
+  INITIATED
+  SCHEDULED
+  COMPLETED
+  REJECTED
+  FAILED
+  UNKNOWN
+  CANCELLED
+  REFUNDED
+}
+
+model BankEmployeeAccount {
+  employee_id    Int       @id
+  bank_code      String    @db.VarChar(3)
+  branch_number  String    @db.VarChar(4)
+  account_number String    @db.VarChar(13)
+  account_type   String    @db.VarChar(10)
+  version        Int       @default(1)
+  updated_at     DateTime  @updatedAt
+  employee       Employees @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+}
+
+model BankPayrollRun {
+  id                  String                @id @db.Uuid
+  competence          String                @db.VarChar(7)
+  kind                PayrollKind
+  environment         BankEnvironment
+  connection_key      String
+  request_hash        String
+  payment_date        DateTime              @db.Date
+  submit_at           DateTime
+  auto_submit_to_cora Boolean               @default(false)
+  paused              Boolean               @default(false)
+  version             Int                   @default(1)
+  created_by          Int
+  created_at          DateTime              @default(now())
+  updated_at          DateTime              @updatedAt
+  creator             Users                 @relation(fields: [created_by], references: [id], onDelete: Restrict)
+  transfers           BankTransfer[]
+  audit               FinancialAuditEvent[]
+
+  @@unique([connection_key, competence, kind])
+  @@index([auto_submit_to_cora, paused, submit_at])
+}
+
+model BankTransfer {
+  id                  String             @id @default(uuid()) @db.Uuid
+  run_id              String             @db.Uuid
+  employee_id         Int
+  connection_key      String
+  beneficiary_name    String
+  destination         Json
+  account_version     Int
+  amount_cents        Int
+  idempotency_key     String             @unique @default(uuid()) @db.Uuid
+  status              BankTransferStatus @default(DRAFT)
+  remote_id           String?
+  remote_status       String?
+  attempts            Int                @default(0)
+  last_error          String?
+  lease_until         DateTime?
+  submitted_at        DateTime?
+  last_checked_at     DateTime?
+  completed_at        DateTime?
+  refunded_at         DateTime?
+  expense_id          Int?               @unique
+  reversal_expense_id Int?               @unique
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  run                 BankPayrollRun     @relation(fields: [run_id], references: [id], onDelete: Restrict)
+  employee            Employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  expense             Expenses?          @relation("TransferExpense", fields: [expense_id], references: [id], onDelete: Restrict)
+  reversal            Expenses?          @relation("TransferReversal", fields: [reversal_expense_id], references: [id], onDelete: Restrict)
+  notifications       BankNotification[]
+
+  @@unique([run_id, employee_id])
+  @@unique([connection_key, remote_id])
+  @@index([status, lease_until])
+}
+
+model FinancialAuditEvent {
+  id          String          @id @default(uuid()) @db.Uuid
+  run_id      String?         @db.Uuid
+  user_id     Int?
+  action      String
+  resource_id String
+  details     Json
+  created_at  DateTime        @default(now())
+  run         BankPayrollRun? @relation(fields: [run_id], references: [id], onDelete: Restrict)
+  user        Users?          @relation(fields: [user_id], references: [id], onDelete: Restrict)
+
+  @@index([run_id, created_at])
+}
+
+model BankWebhookEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  connection_key String
+  event_id       String
+  resource_id    String
+  event_type     String
+  received_at    DateTime  @default(now())
+  processed_at   DateTime?
+
+  @@unique([connection_key, event_id])
+  @@index([processed_at, received_at])
+}
+
+model BankNotification {
+  id             String                 @id @default(uuid()) @db.Uuid
+  connection_key String
+  transfer_id    String?                @db.Uuid
+  payment_id     String?                @db.Uuid
+  status         BankTransferStatus
+  confirmed_at   DateTime
+  created_at     DateTime               @default(now())
+  transfer       BankTransfer?          @relation(fields: [transfer_id], references: [id], onDelete: Restrict)
+  payment        BankPayment?           @relation(fields: [payment_id], references: [id], onDelete: Restrict)
+  reads          BankNotificationRead[]
+
+  @@unique([connection_key, transfer_id, status])
+  @@unique([connection_key, payment_id, status])
+  @@index([connection_key, confirmed_at, id])
+}
+
+model BankNotificationRead {
+  notification_id String           @db.Uuid
+  user_id         Int
+  read_at         DateTime         @default(now())
+  notification    BankNotification @relation(fields: [notification_id], references: [id], onDelete: Cascade)
+  user            Users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([notification_id, user_id])
+  @@index([user_id])
+}
+
+enum BankPaymentPurpose {
+  SUPPLIER
+  REIMBURSEMENT
+}
+
+enum BankPayableStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+model BankBeneficiary {
+  id             String        @id @default(uuid()) @db.Uuid
+  connection_key String
+  name           String        @db.VarChar(150)
+  document       String        @db.VarChar(14)
+  document_type  String        @db.VarChar(4)
+  bank_code      String        @db.VarChar(3)
+  branch_number  String        @db.VarChar(4)
+  account_number String        @db.VarChar(13)
+  account_type   String        @db.VarChar(10)
+  employee_id    Int?
+  vendor_id      Int?
+  active         Boolean       @default(true)
+  version        Int           @default(1)
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+  employee       Employees?    @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  vendor         Vendors?      @relation(fields: [vendor_id], references: [id], onDelete: Restrict)
+  payables       BankPayable[]
+  payments       BankPayment[]
+
+  @@unique([connection_key, document])
+}
+
+model BankPayable {
+  id             String                  @id @default(uuid()) @db.Uuid
+  connection_key String
+  environment    BankEnvironment
+  purpose        BankPaymentPurpose
+  beneficiary_id String                  @db.Uuid
+  expense_id     Int                     @unique
+  total_cents    Int
+  status         BankPayableStatus       @default(DRAFT)
+  version        Int                     @default(1)
+  due_date       DateTime                @db.Date
+  justification  String                  @db.VarChar(1000)
+  created_by     Int
+  approved_at    DateTime?
+  created_at     DateTime                @default(now())
+  updated_at     DateTime                @updatedAt
+  beneficiary    BankBeneficiary         @relation(fields: [beneficiary_id], references: [id], onDelete: Restrict)
+  expense        Expenses                @relation(fields: [expense_id], references: [id], onDelete: Restrict)
+  creator        Users                   @relation(fields: [created_by], references: [id], onDelete: Restrict)
+  allocations    BankPaymentAllocation[]
+  receipts       BankPayableReceipt[]
+
+  @@index([connection_key, purpose, created_at])
+}
+
+model BankPayment {
+  id               String                  @id @db.Uuid
+  connection_key   String
+  environment      BankEnvironment
+  purpose          BankPaymentPurpose
+  beneficiary_id   String                  @db.Uuid
+  beneficiary_name String
+  destination      Json
+  account_version  Int
+  amount_cents     Int
+  payment_date     DateTime                @db.Date
+  request_hash     String
+  idempotency_key  String                  @unique @default(uuid()) @db.Uuid
+  status           BankTransferStatus      @default(DRAFT)
+  version          Int                     @default(1)
+  attempts         Int                     @default(0)
+  remote_id        String?
+  remote_status    String?
+  last_error       String?
+  lease_until      DateTime?
+  submitted_at     DateTime?
+  last_checked_at  DateTime?
+  completed_at     DateTime?
+  refunded_at      DateTime?
+  created_by       Int
+  created_at       DateTime                @default(now())
+  updated_at       DateTime                @updatedAt
+  beneficiary      BankBeneficiary         @relation(fields: [beneficiary_id], references: [id], onDelete: Restrict)
+  creator          Users                   @relation(fields: [created_by], references: [id], onDelete: Restrict)
+  allocations      BankPaymentAllocation[]
+  notifications    BankNotification[]
+
+  @@unique([connection_key, remote_id])
+  @@index([connection_key, status, updated_at])
+}
+
+model BankPaymentAllocation {
+  payment_id   String      @db.Uuid
+  payable_id   String      @db.Uuid
+  amount_cents Int
+  payment      BankPayment @relation(fields: [payment_id], references: [id], onDelete: Restrict)
+  payable      BankPayable @relation(fields: [payable_id], references: [id], onDelete: Restrict)
+
+  @@id([payment_id, payable_id])
+  @@index([payable_id])
+}
+
+model BankPayableReceipt {
+  id         String      @id @default(uuid()) @db.Uuid
+  payable_id String      @db.Uuid
+  name       String      @db.VarChar(150)
+  mime       String      @db.VarChar(50)
+  size       Int
+  content    Bytes
+  created_by Int
+  created_at DateTime    @default(now())
+  payable    BankPayable @relation(fields: [payable_id], references: [id], onDelete: Restrict)
+  creator    Users       @relation(fields: [created_by], references: [id], onDelete: Restrict)
+
+  @@index([payable_id])
 }
 
 enum MessageTriggerType {
@@ -758,4 +1051,133 @@ model LabelPrints {
   order Orders @relation(fields: [order_id], references: [id])
 
   @@index([order_id])
+}
+
+// Extends Customers / Orders / Payments. Production debts remain reflected in Customers.debts.
+// Stage entries never modify the production balance or the existing customer debt.
+model CustomerFinanceLink {
+  id                   String          @id @default(uuid()) @db.Uuid
+  customer_id          Int
+  external_customer_id String          @db.Uuid
+  environment          BankEnvironment
+  status               String          @default("PENDING")
+  version              Int             @default(1)
+  name                 String
+  document             String
+  created_at           DateTime        @default(now())
+  updated_at           DateTime        @updatedAt
+  customer             Customers       @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+
+  @@unique([external_customer_id, environment])
+  @@index([status, environment])
+}
+
+model CustomerFinanceRevision {
+  customer_id Int
+  environment BankEnvironment
+  revision    Int             @default(0)
+  customer    Customers       @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+
+  @@id([customer_id, environment])
+}
+
+model CustomerFinanceEntry {
+  id           String                   @id @default(uuid()) @db.Uuid
+  customer_id  Int
+  environment  BankEnvironment
+  entry_key    String                   @unique
+  kind         String
+  amount_cents Int
+  purchase_id  String?                  @db.Uuid
+  deposit_id   String?                  @unique @db.Uuid
+  payment_id   Int?                     @unique
+  description  String
+  created_at   DateTime                 @default(now())
+  customer     Customers                @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  purchase     CustomerFinancePurchase? @relation(fields: [purchase_id], references: [id], onDelete: Restrict)
+  deposit      CustomerFinanceDeposit?  @relation(fields: [deposit_id], references: [id], onDelete: Restrict)
+  payment      Payments?                @relation(fields: [payment_id], references: [id], onDelete: Restrict)
+
+  @@index([customer_id, environment, created_at])
+}
+
+model CustomerFinancePurchase {
+  id                                String                 @id @default(uuid()) @db.Uuid
+  customer_id                       Int
+  external_customer_id              String                 @db.Uuid
+  external_order_id                 String                 @db.Uuid
+  environment                       BankEnvironment
+  idempotency_key                   String                 @unique @db.Uuid
+  request_hash                      String
+  status                            String                 @default("PENDING")
+  version                           Int                    @default(1)
+  amount_cents                      Int
+  reserved_cents                    Int                    @default(0)
+  cash_applied_cents                Int                    @default(0)
+  balance_before_cents              Int
+  projected_balance_cents           Int
+  consented_projected_balance_cents Int
+  requires_approval                 Boolean
+  order_snapshot                    Json
+  core_order_id                     Int?                   @unique
+  reason                            String?
+  reviewed_by                       Int?
+  reviewed_at                       DateTime?
+  created_at                        DateTime               @default(now())
+  updated_at                        DateTime               @updatedAt
+  customer                          Customers              @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  core_order                        Orders?                @relation(fields: [core_order_id], references: [id], onDelete: Restrict)
+  entries                           CustomerFinanceEntry[]
+
+  @@unique([external_order_id, environment])
+  @@index([status, environment, created_at])
+}
+
+model CustomerFinanceDeposit {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  customer_id          Int
+  external_customer_id String                    @db.Uuid
+  environment          BankEnvironment
+  idempotency_key      String                    @unique @db.Uuid
+  request_hash         String
+  kind                 String
+  status               String                    @default("PENDING")
+  version              Int                       @default(1)
+  amount_cents         Int
+  deposited_at         DateTime?
+  reference            String?
+  invoice_id           String?                   @unique
+  bank_entry_id        String?                   @unique @db.Uuid
+  boleto_url           String?
+  digitable            String?
+  invoice_payload      Json?
+  last_error           String?
+  reason               String?
+  created_at           DateTime                  @default(now())
+  updated_at           DateTime                  @updatedAt
+  customer             Customers                 @relation(fields: [customer_id], references: [id], onDelete: Restrict)
+  bank_entry           CustomerFinanceBankEntry? @relation(fields: [bank_entry_id], references: [id], onDelete: Restrict)
+  entry                CustomerFinanceEntry?
+
+  @@index([environment, status, created_at])
+}
+
+model CustomerFinanceBankEntry {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  connection_key        String
+  environment           BankEnvironment
+  remote_id             String
+  amount_cents          Int
+  occurred_at           DateTime
+  type                  String
+  transaction_type      String?
+  transaction_id        String?
+  counterparty_document String?
+  counterparty_name     String?
+  description           String?
+  authenticated_at      DateTime                @default(now())
+  deposit               CustomerFinanceDeposit?
+
+  @@unique([connection_key, remote_id])
+  @@index([environment, occurred_at])
 }

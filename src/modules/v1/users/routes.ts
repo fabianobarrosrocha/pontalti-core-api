@@ -3,8 +3,10 @@ import createHttpError from "http-errors";
 import userService from "@pontalti/modules/v1/users/user-service";
 import { createUserSchema, updateUserSchema } from "@pontalti/modules/v1/users/user-schema";
 import { validate } from "@pontalti/utils/validator";
+import { requireAdmin } from "@pontalti/middlewares/require-admin";
 
 const router = Router();
+router.use(requireAdmin);
 
 router.post("/", validate(createUserSchema), (req, res, next) => {
   userService

@@ -4,12 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "cora:check": "ts-node src/tasks/cora-check.ts",
+    "cora:webhook": "ts-node src/tasks/cora-webhook.ts",
+    "test:banking": "node --test --test-concurrency=1 -r ts-node/register -r tsconfig-paths/register src/modules/v1/banking/banking.test.ts src/modules/v1/banking/payment.test.ts src/modules/v1/banking/banking-domain.test.ts src/modules/v1/banking/banking-statement.test.ts src/integrations/cora/client.test.ts src/integrations/cora/webhooks.test.ts",
     "build": "tsc",
     "start": "ts-node index.ts",
     "start-dev": "ts-node-dev --ignore-watch node_modules --require tsconfig-paths/register index.ts",
     "prisma": "npx prisma migrate reset --force && npx prisma db push",
     "prisma-format": "npx prisma format",
-    "load-prisma": "ts-node ./src/tasks/load-prisma.ts"
+    "load-prisma": "ts-node ./src/tasks/load-prisma.ts",
+    "test:customer-finance": "node --test --test-concurrency=1 -r ts-node/register -r tsconfig-paths/register src/modules/v1/customer-finance/customer-finance.test.ts"
   },
   "keywords": [],
   "author": "",

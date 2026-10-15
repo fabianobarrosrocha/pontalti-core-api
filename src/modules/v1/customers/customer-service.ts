@@ -29,8 +29,8 @@ const getCustomerById = async (id: number) => {
 
 const updatePartialCustomer = async (id: number, data: UpdatePartialCustomer) => {
   try {
-    const credit_limit = data.credit_limit || (await repository.getCustomer(id)).credit_limit
-    const debts = data.debts || (await repository.getCustomer(id)).debts
+    const credit_limit = data.credit_limit ?? (await repository.getCustomer(id)).credit_limit
+    const debts = data.debts ?? (await repository.getCustomer(id)).debts
     
     if(data.status && debts > credit_limit && data.status == 1){
       throw new BusinessError("Não foi possível atualizar o status do cliente, pois o cliente possui mais dividas do que limite de crédito")
